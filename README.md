@@ -15,4 +15,7 @@ Unity 6 비주얼 노벨 연습 프로젝트
 - [x] 플래그와 엔딩 판정 (set / if, 선택 누적으로 엔딩 분기)
 - [x] 타이틀/엔딩 화면, 타이틀부터 엔딩까지 한 판 흐름 연결
 
-스크립트 포맷과 구조는 [Docs/script-format.md](Docs/script-format.md) 참고.
+- [x] 실제 시나리오 입력 (교실/복도/옥상, 선택지 3곳, 엔딩 2개) — 이미지와 소리는 임시 placeholder
+- [ ] 빌드 테스트와 정리
+
+스크립트 포맷과 구조는 [Docs/script-format.md](Docs/script-format.md), 시나리오와 엔딩 분기는 [Docs/story.md](Docs/story.md) 참고.

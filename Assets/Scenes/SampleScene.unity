@@ -2647,16 +2647,15 @@ MonoBehaviour:
   stage: {fileID: 1166938552}
   audioManager: {fileID: 841230361}
   dialogue: {fileID: 1580208905}
-  scriptName: sample
+  scriptName: story
   fadeDuration: 0.4
   endings:
   - id: good
     title: "\uC5D4\uB529 1"
-    description: "\uC11C\uB85C\uC758 \uB9C8\uC74C\uC774 \uB2FF\uC558\uB2E4."
+    description: "\uD568\uAED8 \uC120 \uBB34\uB300"
   - id: normal
     title: "\uC5D4\uB529 2"
-    description: "\uC544\uBB34 \uC77C\uB3C4 \uC5C6\uC5C8\uB358 \uAC83\uCC98\uB7FC
-      \uD558\uB8E8\uAC00 \uC800\uBB3C\uC5C8\uB2E4."
+    description: "\uC5C7\uAC08\uB9B0 \uBC15\uC218"
 --- !u!4 &1446488282
 Transform:
   m_ObjectHideFlags: 0
