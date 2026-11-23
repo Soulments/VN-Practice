@@ -156,6 +156,7 @@
 | `Runner/IStageView.cs` | 실행기가 배경/캐릭터 연출을 요청할 때 쓰는 인터페이스 |
 | `StageManager.cs` | `IStageView` 구현. 배경 2장(교차 페이드)과 캐릭터 3자리를 Canvas의 Image로 표시 |
 | `Editor/StageSpriteImporter.cs` | 배경/캐릭터 이미지를 Single 스프라이트로 고정 |
+| `Editor/BuildTool.cs` | Windows 64비트 빌드 (메뉴 `VN > Build Windows (64-bit)` 또는 명령줄 `-executeMethod BuildTool.BuildWindows`) |
 | `Runner/IAudioView.cs` | 실행기가 소리를 낼 때 쓰는 인터페이스 |
 | `AudioManager.cs` | `IAudioView` 구현. BGM 1채널(곡 교체 페이드)과 효과음 재생 |
 | `Runner/FlagStore.cs` | 플래그 저장소. `set` 문법과 `if` 조건을 해석하고 계산한다 (순수 C#) |
