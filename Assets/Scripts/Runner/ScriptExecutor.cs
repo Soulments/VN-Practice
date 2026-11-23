@@ -4,13 +4,16 @@ using UnityEngine;
 
 /// <summary>
 /// ScriptData의 명령을 위에서 아래로 실행한다. (3일차)
-/// 구현된 명령: say, label, jump, end (3일차), bg, show, hide (4일차), bgm, sfx (5일차), choice (6일차)
-/// 아직 없는 명령(set, if 등)은 경고만 남기고 건너뛴다. 각 기능을 만드는 날 여기에 case를 추가한다.
+/// 구현된 명령: say, label, jump, end (3일차), bg, show, hide (4일차), bgm, sfx (5일차), choice (6일차), set, if (7일차)
+/// 알 수 없는 명령은 경고만 남기고 건너뛴다. 새 명령을 만드는 날 여기에 case를 추가한다.
 /// </summary>
 public class ScriptExecutor
 {
     // label 없이 jump만 도는 스크립트가 에디터를 멈추지 않게 하는 안전장치
     private const int MaxStepsWithoutYield = 10000;
+
+    /// <summary>시나리오가 set/선택지로 바꾸고 if로 읽는 플래그. 실행기마다 새로 만들어져서 다시 시작하면 초기화된다.</summary>
+    public FlagStore Flags { get; } = new FlagStore();
 
     private static readonly HashSet<string> Positions = new HashSet<string> { "left", "center", "right" };
 
@@ -52,8 +55,20 @@ public class ScriptExecutor
             switch (c.type)
             {
                 case "jump":
+                    CheckTarget(labels, c.target, data.id, i, c.type, errors);
+                    break;
                 case "if":
                     CheckTarget(labels, c.target, data.id, i, c.type, errors);
+                    if (!FlagStore.IsValidName(c.name))
+                        errors.Add($"[{data.id}] #{i} if의 name이 올바르지 않음: '{c.name}'");
+                    if (!FlagStore.TryParseCondition(c.value, out _, out _))
+                        errors.Add($"[{data.id}] #{i} if의 조건(value)을 해석할 수 없음: '{c.value}' (예: 2, >=2, !=0)");
+                    break;
+                case "set":
+                    if (!FlagStore.IsValidName(c.name))
+                        errors.Add($"[{data.id}] #{i} set의 name이 올바르지 않음: '{c.name}'");
+                    else if (!FlagStore.TryParseChange(c.value, out _, out _))
+                        errors.Add($"[{data.id}] #{i} set의 value를 해석할 수 없음: '{c.value}' (예: 3, =3, +1, -1)");
                     break;
                 case "choice":
                     if (c.options == null || c.options.Length == 0)
@@ -66,6 +81,8 @@ public class ScriptExecutor
                         if (string.IsNullOrEmpty(option.text))
                             errors.Add($"[{data.id}] #{i} choice 선택지에 text가 없음");
                         CheckTarget(labels, option.target, data.id, i, "choice", errors);
+                        if (!string.IsNullOrEmpty(option.set) && !FlagStore.TrySplitAssignment(option.set, out _, out _))
+                            errors.Add($"[{data.id}] #{i} choice 선택지의 set을 해석할 수 없음: '{option.set}' (예: kindness+1)");
                     }
                     break;
                 case "label":
@@ -176,10 +193,20 @@ public class ScriptExecutor
                         yield break;
                     }
 
-                    // set(플래그 갱신)은 7일차에 구현한다. 그 전까지는 분기만 처리한다.
+                    // 고른 선택지에 set이 있으면 플래그를 먼저 갱신한 뒤 분기한다 (Validate가 해석 가능함을 보장)
                     if (!string.IsNullOrEmpty(c.options[picked].set))
-                        WarnOnce("choice.set", data.id);
+                        Flags.TryApplyAssignment(c.options[picked].set);
                     pc = labels[c.options[picked].target];
+                    break;
+
+                case "set":
+                    Flags.TryApply(c.name, c.value); // Validate가 해석 가능함을 보장
+                    pc++;
+                    break;
+
+                case "if":
+                    // 조건이 참이면 target 라벨로, 아니면 다음 명령으로
+                    pc = Flags.Evaluate(c.name, c.value) ? labels[c.target] : pc + 1;
                     break;
 
                 case "bgm":
