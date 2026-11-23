@@ -5,7 +5,7 @@
 `JsonUtility`는 다형성을 지원하지 않아서 모든 명령이 같은 `ScriptCommand` 클래스를 쓰고, `type` 으로 구분한다.
 
 ```json
-{ "id": "sample", "commands": [ { "type": "say", "speaker": "클로드", "text": "안녕" } ] }
+{ "id": "sample", "commands": [ { "type": "say", "speaker": "지후", "text": "안녕" } ] }
 ```
 
 ## 명령 목록
@@ -41,7 +41,7 @@
 
 - 이미지는 확장자 없이 `name`으로 가리킨다. 배경은 `Assets/Resources/Backgrounds/{name}.png`, 캐릭터는 `Assets/Resources/Characters/{name}.png`.
 - 캐릭터는 left / center / right **세 자리**가 있고, 자리마다 한 장씩 표시된다.
-  - 표정 차이는 이미지 이름으로 구분한다 (`claude_normal`, `claude_smile`). 같은 자리에 `show`하면 이전 이미지가 사라지고(`duration`의 절반) 새 이미지가 나타난다(나머지 절반).
+  - 표정 차이는 이미지 이름으로 구분한다 (`jihu_normal`, `jihu_smile`). 같은 자리에 `show`하면 이전 이미지가 사라지고(`duration`의 절반) 새 이미지가 나타난다(나머지 절반).
   - 이미 같은 이미지가 그 자리에 있으면 아무 일도 하지 않는다.
 - `duration`은 초 단위 페이드 시간이다. 0이거나 생략하면 즉시 바뀐다. 페이드가 끝나야 다음 명령으로 넘어간다.
 - 이미지를 찾지 못하거나 표시 중이 아닌 캐릭터를 `hide`하면 경고만 남기고 넘어간다.
@@ -174,6 +174,6 @@ Play 모드를 돌리면 글꼴 에셋 파일이 바뀌는데(동적으로 추�
 
 `Assets/Resources/Scripts/sample.json` — 배경/BGM/캐릭터 연출, 대사, 선택지 2번, 플래그 누적(`kindness`)과 엔딩 2개, 종료까지 포함한다.
 선택은 복도(인사를 받아준다 `kindness+1`)와 옥상(솔직하게 마음을 전한다 `kindness+1`) 두 번이고, 합이 2 이상이면 엔딩 1(`end` name `good`), 아니면 엔딩 2(`normal`)다.
-배경 3장(classroom, hallway, rooftop), 캐릭터 3종(claude_normal, claude_smile, mina_normal), BGM 2곡(daily, evening), 효과음 2개(ding, pop)를 쓴다.
+배경 3장(classroom, hallway, rooftop), 캐릭터 3종(jihu_normal, jihu_smile, mina_normal), BGM 2곡(daily, evening), 효과음 2개(ding, pop)를 쓴다.
 복도에서 선택지가 나오고, "인사를 받아준다"는 `kind` 분기(효과음 `pop` + "고마워요!"), "무시한다"는 `cold` 분기("...그렇군요.")로 갈라진 뒤 `end`에서 합쳐진다.
 다른 시나리오를 시험하려면 `ScriptRunner`의 `scriptName`을 바꾸면 된다.
