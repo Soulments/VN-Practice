@@ -1,58 +1,63 @@
 using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// 2일차: 스크립트 JSON의 say 명령을 순서대로 대사창에 타이핑 출력한다.
-/// say 외의 명령(bg, choice 등)은 3일차 실행기에서 처리하므로 여기서는 건너뛴다.
+/// 대사창 화면 담당. 스크립트를 읽거나 순서를 정하는 일은 ScriptRunner/ScriptExecutor가 하고,
+/// 여기서는 받은 대사를 타이핑으로 보여준 뒤 플레이어가 넘길 때까지 기다리기만 한다.
 /// </summary>
-public class DialogueManager : MonoBehaviour
+public class DialogueManager : MonoBehaviour, IDialogueView
 {
     public TextMeshProUGUI nameText;
     public TextMeshProUGUI dialogueText;
 
-    [Tooltip("Resources/Scripts 아래의 JSON 이름 (확장자 제외)")]
-    public string scriptName = "sample";
-
-    [Tooltip("글자 하나가 나타나는 간격(초)")]
+    [Tooltip("글자 하나가 나타나는 간격(초). 0이면 한 번에 표시")]
     public float typeInterval = 0.05f;
 
-    private readonly List<ScriptCommand> lines = new List<ScriptCommand>();
-    private int currentIndex = -1;
-    private bool isTyping = false;
-    private Coroutine typingRoutine;
-
-    void Start()
+    public IEnumerator ShowLine(string speaker, string text)
     {
-        var data = ScriptLoader.Load(scriptName);
-        if (data == null) return;
+        // 직전 줄을 넘긴 클릭이 이번 줄에서 또 인식되지 않도록 한 프레임 쉰다
+        yield return null;
 
-        foreach (var command in data.commands)
-        {
-            if (command.type == "say") lines.Add(command);
-        }
+        nameText.text = speaker;
+        dialogueText.text = text;
+        dialogueText.maxVisibleCharacters = 0;
+        dialogueText.ForceMeshUpdate();
 
-        if (lines.Count == 0)
+        int total = dialogueText.textInfo.characterCount;
+        int shown = 0;
+        float timer = 0f;
+
+        // 타이핑 중: 입력이 오면 즉시 전체 표시
+        while (shown < total)
         {
-            Debug.LogWarning($"[{scriptName}] 출력할 say 명령이 없음");
-            return;
+            if (AdvancePressed()) break;
+
+            if (typeInterval <= 0f)
+            {
+                shown = total;
+            }
+            else
+            {
+                timer += Time.deltaTime;
+                while (timer >= typeInterval && shown < total)
+                {
+                    shown++;
+                    timer -= typeInterval;
+                }
+            }
+            dialogueText.maxVisibleCharacters = shown;
+            yield return null;
         }
-        NextLine();
+        dialogueText.maxVisibleCharacters = int.MaxValue;
+
+        // 입력을 소비한 프레임을 넘긴 뒤, 다음으로 넘기는 입력을 기다린다
+        yield return null;
+        while (!AdvancePressed()) yield return null;
     }
 
-    void Update()
-    {
-        if (!AdvancePressed()) return;
-
-        if (isTyping)
-            FinishTyping();
-        else
-            NextLine();
-    }
-
-    bool AdvancePressed()
+    static bool AdvancePressed()
     {
         var mouse = Mouse.current;
         if (mouse != null && mouse.leftButton.wasPressedThisFrame) return true;
@@ -60,38 +65,5 @@ public class DialogueManager : MonoBehaviour
         var keyboard = Keyboard.current;
         return keyboard != null &&
                (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame);
-    }
-
-    void NextLine()
-    {
-        if (currentIndex + 1 >= lines.Count) return; // 마지막 줄 이후에는 아무 일도 없음 (끝 처리는 3일차)
-
-        currentIndex++;
-        var line = lines[currentIndex];
-        nameText.text = line.speaker;
-        typingRoutine = StartCoroutine(TypeLine(line.text));
-    }
-
-    void FinishTyping()
-    {
-        if (typingRoutine != null) StopCoroutine(typingRoutine);
-        dialogueText.maxVisibleCharacters = int.MaxValue;
-        isTyping = false;
-    }
-
-    IEnumerator TypeLine(string line)
-    {
-        isTyping = true;
-        dialogueText.text = line;
-        dialogueText.maxVisibleCharacters = 0;
-        dialogueText.ForceMeshUpdate();
-
-        int total = dialogueText.textInfo.characterCount;
-        for (int i = 1; i <= total; i++)
-        {
-            dialogueText.maxVisibleCharacters = i;
-            yield return new WaitForSeconds(typeInterval);
-        }
-        isTyping = false;
     }
 }
