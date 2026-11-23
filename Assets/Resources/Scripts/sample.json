@@ -51,15 +51,15 @@
     { "type": "jump", "target": "ending_normal" },
 
     { "type": "label", "name": "ending_good" },
-    { "type": "say", "speaker": "", "text": "[엔딩 1] 서로의 마음이 닿았다." },
-    { "type": "jump", "target": "finish" },
-
-    { "type": "label", "name": "ending_normal" },
-    { "type": "say", "speaker": "", "text": "[엔딩 2] 아무 일도 없었던 것처럼 하루가 저물었다." },
-
-    { "type": "label", "name": "finish" },
+    { "type": "say", "speaker": "", "text": "서로의 마음이 닿았다." },
     { "type": "hide", "position": "left", "duration": 0.4 },
     { "type": "bgm", "name": "stop", "duration": 1.0 },
-    { "type": "end" }
+    { "type": "end", "name": "good" },
+
+    { "type": "label", "name": "ending_normal" },
+    { "type": "say", "speaker": "", "text": "아무 일도 없었던 것처럼 하루가 저물었다." },
+    { "type": "hide", "position": "left", "duration": 0.4 },
+    { "type": "bgm", "name": "stop", "duration": 1.0 },
+    { "type": "end", "name": "normal" }
   ]
 }
