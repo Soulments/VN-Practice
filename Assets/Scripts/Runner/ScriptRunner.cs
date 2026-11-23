@@ -8,6 +8,7 @@ public class ScriptRunner : MonoBehaviour
     public DialogueManager dialogueView;
     public StageManager stageView;
     public AudioManager audioView;
+    public ChoiceManager choiceView;
 
     [Tooltip("Resources/Scripts 아래의 JSON 이름 (확장자 제외)")]
     public string scriptName = "sample";
@@ -29,6 +30,9 @@ public class ScriptRunner : MonoBehaviour
         if (audioView == null)
             Debug.LogWarning("ScriptRunner: audioView가 연결되지 않아 BGM/효과음은 건너뜀");
 
-        StartCoroutine(new ScriptExecutor(dialogueView, stageView, audioView).Run(data));
+        if (choiceView == null)
+            Debug.LogWarning("ScriptRunner: choiceView가 연결되지 않아 선택지는 건너뜀");
+
+        StartCoroutine(new ScriptExecutor(dialogueView, stageView, audioView, choiceView).Run(data));
     }
 }

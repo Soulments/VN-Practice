@@ -21,7 +21,7 @@
 | `hide` | `name` 또는 `position`, `duration` | 캐릭터 숨김. `position`이 있으면 그 자리, 없으면 `name`이 표시 중인 자리 | 구현됨 (4일차) |
 | `bgm` | `name`, `duration` | BGM 재생(반복). `name`이 `stop`이면 끈다 | 구현됨 (5일차) |
 | `sfx` | `name` | 효과음 한 번 재생 | 구현됨 (5일차) |
-| `choice` | `options[]` (`text`, `target`, `set`) | 선택지. 고르면 `target` 라벨로 이동, `set`이 있으면 플래그 갱신 | 6일차 |
+| `choice` | `options[]` (`text`, `target`, `set`) | 선택지. 고르면 `target` 라벨로 이동. `set`(플래그 갱신)은 7일차 | 분기 구현됨 (6일차), `set`은 7일차 |
 | `set` | `name`, `value` | 변수/플래그 설정 | 7일차 |
 | `if` | `name`, `value`, `target` | 변수가 `value`면 `target` 라벨로 이동 | 7일차 |
 
@@ -30,7 +30,7 @@
 ## 실행 규칙
 
 - 실행 전에 `ScriptExecutor.Validate`가 검사한다. `jump`/`if`/`choice`의 대상 라벨이 없거나, 라벨이 중복이거나, `choice`에 `options`가 없으면 에러를 로그로 남기고 **실행하지 않는다**.
-- 아직 구현되지 않았거나 알 수 없는 `type`은 경고를 한 번 남기고 건너뛴다. (`choice`가 건너뛰어지는 동안은 선택 없이 다음 명령으로 흘러간다.)
+- 아직 구현되지 않았거나 알 수 없는 `type`은 경고를 한 번 남기고 건너뛴다.
 - 대사(`say`) 없이 명령만 10000개 이상 연속 실행되면(`label`↔`jump` 무한 루프 등) 에러를 남기고 중단한다.
 - 마지막 명령까지 실행하면 그냥 끝난다. 명시적으로 끝내려면 `end`를 쓴다.
 - 라벨 이름은 한 파일 안에서 유일해야 한다.
@@ -64,6 +64,22 @@
 - 실행 전 검증: `bgm`/`sfx`에 `name`이 없거나 `duration`이 음수이면 실행하지 않는다.
 - 현재 들어있는 소리는 코드로 합성한 임시(placeholder) 파일이다 (`daily`, `evening`, `ding`, `pop`). 같은 파일명으로 덮어쓰면 교체된다.
 
+## 선택지와 분기 (6일차)
+
+```json
+{ "type": "choice", "options": [
+  { "text": "인사를 받아준다", "target": "kind" },
+  { "text": "무시한다",       "target": "cold" } ] }
+```
+
+- `choice`를 만나면 선택지 버튼이 화면 중앙 위쪽에 세로로 나타나고, 하나를 고를 때까지 기다린다. 마지막 대사는 아래 대사창에 그대로 남아 있다.
+- 고른 항목의 `target` 라벨로 이동해 거기서부터 계속 실행한다. 분기가 끝나 합쳐지는 지점은 `label`과 `jump`로 직접 만든다 (`sample.json`의 `kind` / `cold` → `end` 참고).
+- 선택지는 몇 개든 쓸 수 있고(버튼이 가운데 정렬로 쌓인다), `choice`를 연달아 써도 된다.
+- 실행 전 검증: `options`가 비었거나, 선택지의 `text`가 없거나, `target` 라벨이 없으면 실행하지 않는다.
+- 선택지의 `set`은 7일차(플래그)에 구현한다. 그 전까지는 분기만 처리하고, `set`이 있는 선택지를 고르면 경고를 한 번 남긴다.
+- `ChoiceManager`에 연결된 `ScriptRunner.choiceView`가 없으면 `choice`는 경고 후 건너뛰고, 그대로 다음 명령으로 흘러간다.
+- 버튼 모양은 씬의 `ChoicePanel/ChoiceButtonTemplate`(견본)을 고치면 모든 선택지에 반영된다. 색은 견본의 Button 색상 설정, 글꼴·크기는 견본 아래 `Text`에서 바꾼다.
+
 ## 구조
 
 | 파일 | 역할 |
@@ -79,10 +95,12 @@
 | `Editor/StageSpriteImporter.cs` | 배경/캐릭터 이미지를 Single 스프라이트로 고정 |
 | `Runner/IAudioView.cs` | 실행기가 소리를 낼 때 쓰는 인터페이스 |
 | `AudioManager.cs` | `IAudioView` 구현. BGM 1채널(곡 교체 페이드)과 효과음 재생 |
+| `Runner/IChoiceView.cs` | 실행기가 선택지를 보여줄 때 쓰는 인터페이스 |
+| `ChoiceManager.cs` | `IChoiceView` 구현. 견본 버튼을 복제해 선택지를 만들고 고른 번호를 돌려준다 |
 
 ## 샘플
 
 `Assets/Resources/Scripts/sample.json` — 배경/BGM/캐릭터 연출, 대사 2줄, 선택지 2개와 두 갈래 분기, 종료까지 포함한다.
 배경 3장(classroom, hallway, rooftop), 캐릭터 3종(claude_normal, claude_smile, mina_normal), BGM 2곡(daily, evening), 효과음 2개(ding, pop)를 쓴다.
-현재는 `choice`가 건너뛰어져서 `kind` 분기 → `jump end` 순으로 흐르고, `cold` 분기는 실행되지 않는다.
+복도에서 선택지가 나오고, "인사를 받아준다"는 `kind` 분기(효과음 `pop` + "고마워요!"), "무시한다"는 `cold` 분기("...그렇군요.")로 갈라진 뒤 `end`에서 합쳐진다.
 다른 시나리오를 시험하려면 `ScriptRunner`의 `scriptName`을 바꾸면 된다.

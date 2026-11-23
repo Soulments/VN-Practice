@@ -4,8 +4,8 @@ using UnityEngine;
 
 /// <summary>
 /// ScriptData의 명령을 위에서 아래로 실행한다. (3일차)
-/// 구현된 명령: say, label, jump, end (3일차), bg, show, hide (4일차), bgm, sfx (5일차)
-/// 아직 없는 명령(choice 등)은 경고만 남기고 건너뛴다. 각 기능을 만드는 날 여기에 case를 추가한다.
+/// 구현된 명령: say, label, jump, end (3일차), bg, show, hide (4일차), bgm, sfx (5일차), choice (6일차)
+/// 아직 없는 명령(set, if 등)은 경고만 남기고 건너뛴다. 각 기능을 만드는 날 여기에 case를 추가한다.
 /// </summary>
 public class ScriptExecutor
 {
@@ -17,15 +17,18 @@ public class ScriptExecutor
     private readonly IDialogueView view;
     private readonly IStageView stage;
     private readonly IAudioView audio;
+    private readonly IChoiceView choice;
     private readonly HashSet<string> warnedTypes = new HashSet<string>();
 
     /// <param name="stage">배경/캐릭터 연출 담당. null이면 bg/show/hide를 경고 후 건너뛴다.</param>
     /// <param name="audio">BGM/효과음 담당. null이면 bgm/sfx를 경고 후 건너뛴다.</param>
-    public ScriptExecutor(IDialogueView view, IStageView stage = null, IAudioView audio = null)
+    /// <param name="choice">선택지 담당. null이면 choice를 경고 후 건너뛴다.</param>
+    public ScriptExecutor(IDialogueView view, IStageView stage = null, IAudioView audio = null, IChoiceView choice = null)
     {
         this.view = view;
         this.stage = stage;
         this.audio = audio;
+        this.choice = choice;
     }
 
     /// <summary>실행 전에 jump/choice 대상 라벨이 모두 존재하는지 검사한다. 문제 목록을 반환 (없으면 빈 리스트).</summary>
@@ -59,7 +62,11 @@ public class ScriptExecutor
                         break;
                     }
                     foreach (var option in c.options)
+                    {
+                        if (string.IsNullOrEmpty(option.text))
+                            errors.Add($"[{data.id}] #{i} choice 선택지에 text가 없음");
                         CheckTarget(labels, option.target, data.id, i, "choice", errors);
+                    }
                     break;
                 case "label":
                     if (string.IsNullOrEmpty(c.name))
@@ -152,6 +159,29 @@ public class ScriptExecutor
                     pc++;
                     break;
 
+                case "choice":
+                    if (choice == null)
+                    {
+                        WarnOnce(c.type, data.id);
+                        pc++;
+                        break;
+                    }
+
+                    steps = 0;
+                    int picked = -1;
+                    yield return choice.ShowChoices(OptionTexts(c), index => picked = index);
+                    if (picked < 0 || picked >= c.options.Length)
+                    {
+                        Debug.LogError($"[{data.id}] #{pc} choice에서 올바르지 않은 번호가 선택됨: {picked}");
+                        yield break;
+                    }
+
+                    // set(플래그 갱신)은 7일차에 구현한다. 그 전까지는 분기만 처리한다.
+                    if (!string.IsNullOrEmpty(c.options[picked].set))
+                        WarnOnce("choice.set", data.id);
+                    pc = labels[c.options[picked].target];
+                    break;
+
                 case "bgm":
                 case "sfx":
                     if (audio == null)
@@ -181,6 +211,13 @@ public class ScriptExecutor
                 yield break;
             }
         }
+    }
+
+    private static List<string> OptionTexts(ScriptCommand c)
+    {
+        var texts = new List<string>(c.options.Length);
+        foreach (var option in c.options) texts.Add(option.text);
+        return texts;
     }
 
     private void WarnOnce(string type, string scriptId)
