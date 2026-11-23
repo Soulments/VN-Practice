@@ -45,6 +45,12 @@ Unity 6으로 만든 짧은 비주얼 노벨입니다. 시나리오(JSON)를 읽
 { "type": "if", "name": "trust", "value": ">=2", "target": "ending_good" }
 ```
 
+## 테스트와 검증
+
+- **자동 테스트 141개** (EditMode, 몇 초): 에디터의 `Window > General > Test Runner`에서 실행하거나 `unity test run --mode editor`. 플래그 문법, 실행기 동작, 그리고 실제 시나리오의 **모든 선택 조합**이 오류 없이 끝나는지 확인합니다.
+- **시나리오 검증 메뉴** `VN → Validate Scripts`: 없는 이미지/소리 파일, 도달할 수 없는 대사, 엔딩 연결 같은 문제를 시나리오를 고친 직후에 미리 찾아 줍니다.
+- 자세한 내용은 [Docs/testing.md](Docs/testing.md)를 보세요.
+
 ## 구조
 
 ```
@@ -54,12 +60,13 @@ Assets/
     Runner/       ScriptExecutor, FlagStore, ScriptRunner, I*View (명령 실행과 화면 인터페이스)
     DialogueManager / StageManager / AudioManager / ChoiceManager  (화면과 소리 구현)
     GameFlow      타이틀 → 시나리오 → 엔딩 흐름
-  Editor/         StageSpriteImporter, BuildTool
+  Editor/         StageSpriteImporter, BuildTool, ScriptAnalyzer, ScriptValidatorMenu
+  Tests/EditMode/ 자동 테스트 141개
   Resources/
     Scripts/      story.json (본편), sample.json (기능 시연용)
     Backgrounds/ Characters/ Audio/Bgm/ Audio/Sfx/
   Scenes/SampleScene.unity
-Docs/             script-format.md (포맷과 구조), story.md (시나리오), screenshots/
+Docs/             script-format.md (포맷과 구조), story.md (시나리오), testing.md (테스트와 검증), screenshots/
 ```
 
 실행기는 화면을 직접 다루지 않고 `IDialogueView`, `IStageView`, `IAudioView`, `IChoiceView`에만 의존합니다. 그래서 화면 없이도 실행 로직을 시험할 수 있습니다.
@@ -91,3 +98,4 @@ Unity.exe -batchmode -quit -projectPath . -executeMethod BuildTool.BuildWindows
 - [x] 타이틀/엔딩 화면, 타이틀부터 엔딩까지 한 판 흐름
 - [x] 실제 시나리오 입력 (교실/복도/옥상, 선택지 3곳, 엔딩 2개)
 - [x] 빌드 테스트와 정리 (Windows 64비트 빌드, 스크린샷, 문서)
+- [x] 자동 테스트와 시나리오 검증 도구

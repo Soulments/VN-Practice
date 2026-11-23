@@ -17,6 +17,7 @@ public class ScriptData
         for (int i = 0; i < commands.Length; i++)
         {
             if (commands[i].type != "label") continue;
+            if (string.IsNullOrEmpty(commands[i].name)) continue; // 이름 없는 라벨은 ScriptExecutor.Validate가 오류로 알린다
             if (map.ContainsKey(commands[i].name))
                 throw new FormatException($"[{id}] 중복 라벨: {commands[i].name}");
             map[commands[i].name] = i;
