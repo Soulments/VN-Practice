@@ -1,9 +1,9 @@
 # 시나리오 (9일차)
 
-`Assets/Resources/Scripts/story.json` — 축제 전날 방과 후, 연극 주인공 역의 클로드가 무대 공포를 털어놓는 이야기. 플레이어는 말 없는 "나"(반장)로 세 번 선택한다.
+`Assets/Resources/Scripts/story.json` — 축제 전날 방과 후, 연극 주인공 역의 지후가 무대 공포를 털어놓는 이야기. 플레이어는 말 없는 "나"(반장)로 세 번 선택한다.
 화면에서는 `GameFlow.scriptName = "story"`로 재생된다. `sample.json`은 명령 기능을 보여주는 짧은 시연용으로 남겨 두었다.
 
-- 등장인물: 클로드(왼쪽, 표정 `claude_normal`/`smile`/`worried`), 미나(오른쪽·가운데, `mina_normal`/`smile`/`worried`)
+- 등장인물: 지후(왼쪽, 표정 `jihu_normal`/`smile`/`worried`), 미나(오른쪽·가운데, `mina_normal`/`smile`/`worried`)
 - 배경 3장: 교실 → 복도 → 옥상. BGM은 `daily`(교실, 복도)와 `evening`(옥상), 효과음은 하교 종소리로 `ding`
 - 분량: 대사 59줄, 한 판에 약 40~45줄을 읽는다 (읽는 속도에 따라 대략 4~6분)
 
@@ -13,8 +13,8 @@
 교실 ──(선택 1)──┬─ help1  : 같이 대사를 맞춰 본다      trust +1
                  └─ cheer1 : 말로만 격려한다
 복도 ──(선택 2)──┬─ cheer2 : 미나와 끝까지 응원한다      trust +1
-                 └─ wait2  : 클로드가 말할 때까지 기다린다  waited = 1
-옥상 (waited면 클로드의 첫 대사가 달라진다)
+                 └─ wait2  : 지후가 말할 때까지 기다린다  waited = 1
+옥상 (waited면 지후의 첫 대사가 달라진다)
      ──(선택 3)──┬─ listen3: 옆에 있겠다고 말한다        trust +1
                  └─ push3  : 포기하면 아깝다고 말한다
 판정: trust >= 2  → 엔딩 1 (good)   아니면 → 엔딩 2 (normal)
@@ -22,15 +22,15 @@
 
 | 플래그 | 의미 |
 |---|---|
-| `trust` | 클로드가 마음을 열 만한 선택을 한 횟수 (0~3) |
+| `trust` | 지후가 마음을 열 만한 선택을 한 횟수 (0~3) |
 | `waited` | 복도에서 "기다리자"를 골랐는지. 옥상의 대사 한 줄만 바꾸는 분기(`roof_waited`)이고 엔딩에는 영향이 없다 |
 
 세 선택 중 두 번 이상 첫 번째 선택지(마음을 여는 쪽)를 고르면 엔딩 1이다. 8가지 조합 중 4가지가 엔딩 1, 4가지가 엔딩 2다.
 
 | `end` name | 화면 제목 | 설명 | 내용 |
 |---|---|---|---|
-| `good` | 엔딩 1 | 함께 선 무대 | 공연이 박수 속에 끝나고 클로드가 가장 먼저 우리를 찾아 웃는다 |
-| `normal` | 엔딩 2 | 엇갈린 박수 | 공연은 무사히 끝나지만 커튼콜에서 클로드가 우리 쪽을 보지 않는다 |
+| `good` | 엔딩 1 | 함께 선 무대 | 공연이 박수 속에 끝나고 지후가 가장 먼저 우리를 찾아 웃는다 |
+| `normal` | 엔딩 2 | 엇갈린 박수 | 공연은 무사히 끝나지만 커튼콜에서 지후가 우리 쪽을 보지 않는다 |
 
 엔딩 화면의 제목/설명은 씬의 `GameFlow` 인스펙터 `Endings`에 있다.
 
@@ -46,11 +46,11 @@
 | 종류 | 파일 |
 |---|---|
 | 배경 | `classroom`, `hallway`, `rooftop` (+ 타이틀용 `title`) |
-| 캐릭터 | `claude_normal`, `claude_smile`, `claude_worried`, `mina_normal`, `mina_smile`, `mina_worried` |
+| 캐릭터 | `jihu_normal`, `jihu_smile`, `jihu_worried`, `mina_normal`, `mina_smile`, `mina_worried` |
 | BGM | `daily`, `evening` |
 | 효과음 | `ding`, `pop` |
 
-이 중 `claude_normal`과 `pop`은 `story.json`에서 쓰지 않고 시연용 `sample.json`만 쓴다.
+이 중 `jihu_normal`과 `pop`은 `story.json`에서 쓰지 않고 시연용 `sample.json`만 쓴다.
 
 ## 검증 방법 (참고)
 

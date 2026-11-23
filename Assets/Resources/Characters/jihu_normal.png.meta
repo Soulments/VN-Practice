@@ -1,13 +1,13 @@
 fileFormatVersion: 2
-guid: 9682ca0aceca1ec40ae1423c11bdb915
+guid: 1177292f4ea527f438d572be1ba26a7e
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 1821467079823590177
-    second: claude_smile_0
+      213: 1285920772045671153
+    second: jihu_normal_0
   - first:
-      213: -3200991537496466775
-    second: claude_smile_1
+      213: -6250284364085503248
+    second: jihu_normal_1
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -155,7 +155,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: claude_smile_0
+      name: jihu_normal_0
       rect:
         serializedVersion: 2
         x: 99
@@ -170,14 +170,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 12304f698a6274910800000000000000
-      internalID: 1821467079823590177
+      spriteID: 1fa041b012288d110800000000000000
+      internalID: 1285920772045671153
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: claude_smile_1
+      name: jihu_normal_1
       rect:
         serializedVersion: 2
         x: 59
@@ -192,8 +192,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 9aadd7ef72bc393d0800000000000000
-      internalID: -3200991537496466775
+      spriteID: 0fa518d7c778249a0800000000000000
+      internalID: -6250284364085503248
       vertices: []
       indices: 
       edges: []
@@ -212,8 +212,8 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      claude_smile_0: 1821467079823590177
-      claude_smile_1: -3200991537496466775
+      jihu_normal_0: 1285920772045671153
+      jihu_normal_1: -6250284364085503248
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
