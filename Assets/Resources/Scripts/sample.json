@@ -1,0 +1,25 @@
+{
+  "id": "sample",
+  "commands": [
+    { "type": "bg", "name": "classroom", "duration": 0.5 },
+    { "type": "bgm", "name": "daily" },
+    { "type": "show", "name": "claude_normal", "position": "center", "duration": 0.3 },
+    { "type": "say", "speaker": "클로드", "text": "안녕하세요! 비주얼 노벨 테스트입니다." },
+    { "type": "say", "speaker": "클로드", "text": "클릭하면 다음 줄로 넘어갑니다." },
+    {
+      "type": "choice",
+      "options": [
+        { "text": "인사를 받아준다", "target": "kind", "set": "kindness+1" },
+        { "text": "무시한다", "target": "cold" }
+      ]
+    },
+    { "type": "label", "name": "kind" },
+    { "type": "say", "speaker": "클로드", "text": "고마워요!" },
+    { "type": "jump", "target": "end" },
+    { "type": "label", "name": "cold" },
+    { "type": "say", "speaker": "클로드", "text": "...그렇군요." },
+    { "type": "label", "name": "end" },
+    { "type": "say", "speaker": "", "text": "샘플 끝." },
+    { "type": "end" }
+  ]
+}
