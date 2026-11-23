@@ -6,6 +6,7 @@ using UnityEngine;
 public class ScriptRunner : MonoBehaviour
 {
     public DialogueManager dialogueView;
+    public StageManager stageView;
 
     [Tooltip("Resources/Scripts 아래의 JSON 이름 (확장자 제외)")]
     public string scriptName = "sample";
@@ -21,6 +22,9 @@ public class ScriptRunner : MonoBehaviour
         var data = ScriptLoader.Load(scriptName);
         if (data == null) return;
 
-        StartCoroutine(new ScriptExecutor(dialogueView).Run(data));
+        if (stageView == null)
+            Debug.LogWarning("ScriptRunner: stageView가 연결되지 않아 배경/캐릭터 연출은 건너뜀");
+
+        StartCoroutine(new ScriptExecutor(dialogueView, stageView).Run(data));
     }
 }

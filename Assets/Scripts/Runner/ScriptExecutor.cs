@@ -4,20 +4,25 @@ using UnityEngine;
 
 /// <summary>
 /// ScriptData의 명령을 위에서 아래로 실행한다. (3일차)
-/// 구현된 명령: say, label, jump, end
-/// 아직 없는 명령(bg, show, choice 등)은 경고만 남기고 건너뛴다. 각 기능을 만드는 날 여기에 case를 추가한다.
+/// 구현된 명령: say, label, jump, end (3일차), bg, show, hide (4일차)
+/// 아직 없는 명령(choice 등)은 경고만 남기고 건너뛴다. 각 기능을 만드는 날 여기에 case를 추가한다.
 /// </summary>
 public class ScriptExecutor
 {
     // label 없이 jump만 도는 스크립트가 에디터를 멈추지 않게 하는 안전장치
     private const int MaxStepsWithoutYield = 10000;
 
+    private static readonly HashSet<string> Positions = new HashSet<string> { "left", "center", "right" };
+
     private readonly IDialogueView view;
+    private readonly IStageView stage;
     private readonly HashSet<string> warnedTypes = new HashSet<string>();
 
-    public ScriptExecutor(IDialogueView view)
+    /// <param name="stage">배경/캐릭터 연출 담당. null이면 bg/show/hide를 경고 후 건너뛴다.</param>
+    public ScriptExecutor(IDialogueView view, IStageView stage = null)
     {
         this.view = view;
+        this.stage = stage;
     }
 
     /// <summary>실행 전에 jump/choice 대상 라벨이 모두 존재하는지 검사한다. 문제 목록을 반환 (없으면 빈 리스트).</summary>
@@ -57,9 +62,29 @@ public class ScriptExecutor
                     if (string.IsNullOrEmpty(c.name))
                         errors.Add($"[{data.id}] #{i} label에 name이 없음");
                     break;
+                case "bg":
+                case "show":
+                    CheckStageCommand(c, data.id, i, needsName: true, errors);
+                    break;
+                case "hide":
+                    // hide는 name이나 position 중 하나만 있으면 된다
+                    if (string.IsNullOrEmpty(c.name) && string.IsNullOrEmpty(c.position))
+                        errors.Add($"[{data.id}] #{i} hide에 name 또는 position이 필요함");
+                    CheckStageCommand(c, data.id, i, needsName: false, errors);
+                    break;
             }
         }
         return errors;
+    }
+
+    private static void CheckStageCommand(ScriptCommand c, string id, int index, bool needsName, List<string> errors)
+    {
+        if (needsName && string.IsNullOrEmpty(c.name))
+            errors.Add($"[{id}] #{index} {c.type}에 name이 없음");
+        if (!string.IsNullOrEmpty(c.position) && !Positions.Contains(c.position))
+            errors.Add($"[{id}] #{index} {c.type}의 position이 올바르지 않음: {c.position} (left / center / right)");
+        if (c.duration < 0f)
+            errors.Add($"[{id}] #{index} {c.type}의 duration이 음수임: {c.duration}");
     }
 
     private static void CheckTarget(Dictionary<string, int> labels, string target, string id, int index, string type, List<string> errors)
@@ -104,6 +129,23 @@ public class ScriptExecutor
 
                 case "end":
                     yield break;
+
+                case "bg":
+                case "show":
+                case "hide":
+                    if (stage == null)
+                    {
+                        WarnOnce(c.type, data.id);
+                    }
+                    else
+                    {
+                        steps = 0;
+                        if (c.type == "bg") yield return stage.SetBackground(c.name, c.duration);
+                        else if (c.type == "show") yield return stage.ShowCharacter(c.name, c.position, c.duration);
+                        else yield return stage.HideCharacter(c.name, c.position, c.duration);
+                    }
+                    pc++;
+                    break;
 
                 default:
                     WarnOnce(c.type, data.id);
