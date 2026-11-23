@@ -7,6 +7,7 @@ public class ScriptRunner : MonoBehaviour
 {
     public DialogueManager dialogueView;
     public StageManager stageView;
+    public AudioManager audioView;
 
     [Tooltip("Resources/Scripts 아래의 JSON 이름 (확장자 제외)")]
     public string scriptName = "sample";
@@ -25,6 +26,9 @@ public class ScriptRunner : MonoBehaviour
         if (stageView == null)
             Debug.LogWarning("ScriptRunner: stageView가 연결되지 않아 배경/캐릭터 연출은 건너뜀");
 
-        StartCoroutine(new ScriptExecutor(dialogueView, stageView).Run(data));
+        if (audioView == null)
+            Debug.LogWarning("ScriptRunner: audioView가 연결되지 않아 BGM/효과음은 건너뜀");
+
+        StartCoroutine(new ScriptExecutor(dialogueView, stageView, audioView).Run(data));
     }
 }

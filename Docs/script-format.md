@@ -19,8 +19,8 @@
 | `bg` | `name`, `duration` | 배경 교체. 이전 배경 위에서 새 배경이 페이드인 | 구현됨 (4일차) |
 | `show` | `name`, `position`, `duration` | 캐릭터 표시. position: left / center / right (생략하면 center) | 구현됨 (4일차) |
 | `hide` | `name` 또는 `position`, `duration` | 캐릭터 숨김. `position`이 있으면 그 자리, 없으면 `name`이 표시 중인 자리 | 구현됨 (4일차) |
-| `bgm` | `name` | BGM 재생 | 5일차 |
-| `sfx` | `name` | 효과음 재생 | 5일차 |
+| `bgm` | `name`, `duration` | BGM 재생(반복). `name`이 `stop`이면 끈다 | 구현됨 (5일차) |
+| `sfx` | `name` | 효과음 한 번 재생 | 구현됨 (5일차) |
 | `choice` | `options[]` (`text`, `target`, `set`) | 선택지. 고르면 `target` 라벨로 이동, `set`이 있으면 플래그 갱신 | 6일차 |
 | `set` | `name`, `value` | 변수/플래그 설정 | 7일차 |
 | `if` | `name`, `value`, `target` | 변수가 `value`면 `target` 라벨로 이동 | 7일차 |
@@ -50,6 +50,20 @@
 - 현재 들어있는 이미지는 임시(placeholder)다. 같은 파일명으로 덮어쓰면 코드와 시나리오 수정 없이 교체된다.
   권장 크기: 배경 1280x720(화면 비율 16:9), 캐릭터는 세로로 긴 투명 PNG (임시 이미지는 420x720).
 
+## 사운드 (5일차)
+
+- BGM은 `Assets/Resources/Audio/Bgm/{name}`, 효과음은 `Assets/Resources/Audio/Sfx/{name}`에 둔다. `name`은 확장자 없이 쓴다 (wav, ogg, mp3 모두 가능).
+- BGM은 한 번에 한 곡만 나오고 반복 재생된다.
+  - 이미 같은 곡이 나오고 있으면 아무 일도 하지 않는다.
+  - 다른 곡이 나오고 있으면 이전 곡이 `duration`의 절반 동안 줄어든 뒤 새 곡이 나머지 절반 동안 커진다. 나오는 곡이 없으면 `duration` 전체로 커진다.
+  - `name`을 `stop`으로 하면 `duration` 동안 줄어든 뒤 꺼진다.
+  - `duration`을 생략하면 즉시 바뀐다.
+- `bgm`과 `sfx`는 재생만 시작하고 기다리지 않는다. 바로 다음 명령이 실행된다.
+- 소리 파일을 찾지 못하면 경고만 남기고 넘어간다.
+- 볼륨은 씬의 `AudioManager` 컴포넌트에서 조정한다 (`bgmVolume` 0.6, `sfxVolume` 1).
+- 실행 전 검증: `bgm`/`sfx`에 `name`이 없거나 `duration`이 음수이면 실행하지 않는다.
+- 현재 들어있는 소리는 코드로 합성한 임시(placeholder) 파일이다 (`daily`, `evening`, `ding`, `pop`). 같은 파일명으로 덮어쓰면 교체된다.
+
 ## 구조
 
 | 파일 | 역할 |
@@ -63,10 +77,12 @@
 | `Runner/IStageView.cs` | 실행기가 배경/캐릭터 연출을 요청할 때 쓰는 인터페이스 |
 | `StageManager.cs` | `IStageView` 구현. 배경 2장(교차 페이드)과 캐릭터 3자리를 Canvas의 Image로 표시 |
 | `Editor/StageSpriteImporter.cs` | 배경/캐릭터 이미지를 Single 스프라이트로 고정 |
+| `Runner/IAudioView.cs` | 실행기가 소리를 낼 때 쓰는 인터페이스 |
+| `AudioManager.cs` | `IAudioView` 구현. BGM 1채널(곡 교체 페이드)과 효과음 재생 |
 
 ## 샘플
 
 `Assets/Resources/Scripts/sample.json` — 배경/BGM/캐릭터 연출, 대사 2줄, 선택지 2개와 두 갈래 분기, 종료까지 포함한다.
-배경 3장(classroom, hallway, rooftop)과 캐릭터 3종(claude_normal, claude_smile, mina_normal)을 쓴다.
+배경 3장(classroom, hallway, rooftop), 캐릭터 3종(claude_normal, claude_smile, mina_normal), BGM 2곡(daily, evening), 효과음 2개(ding, pop)를 쓴다.
 현재는 `choice`가 건너뛰어져서 `kind` 분기 → `jump end` 순으로 흐르고, `cold` 분기는 실행되지 않는다.
 다른 시나리오를 시험하려면 `ScriptRunner`의 `scriptName`을 바꾸면 된다.

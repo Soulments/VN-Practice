@@ -2,9 +2,10 @@
   "id": "sample",
   "commands": [
     { "type": "bg", "name": "classroom", "duration": 0.8 },
-    { "type": "bgm", "name": "daily" },
+    { "type": "bgm", "name": "daily", "duration": 1.0 },
     { "type": "show", "name": "claude_normal", "position": "left", "duration": 0.4 },
     { "type": "say", "speaker": "클로드", "text": "안녕하세요! 비주얼 노벨 테스트입니다." },
+    { "type": "sfx", "name": "ding" },
     { "type": "show", "name": "mina_normal", "position": "right", "duration": 0.4 },
     { "type": "say", "speaker": "미나", "text": "처음 뵙겠습니다. 저는 미나예요." },
     { "type": "say", "speaker": "클로드", "text": "클릭하면 다음 줄로 넘어갑니다." },
@@ -19,6 +20,7 @@
       ]
     },
     { "type": "label", "name": "kind" },
+    { "type": "sfx", "name": "pop" },
     { "type": "say", "speaker": "클로드", "text": "고마워요!" },
     { "type": "jump", "target": "end" },
     { "type": "label", "name": "cold" },
@@ -26,8 +28,10 @@
     { "type": "label", "name": "end" },
     { "type": "hide", "name": "mina_normal", "duration": 0.4 },
     { "type": "bg", "name": "rooftop", "duration": 0.8 },
+    { "type": "bgm", "name": "evening", "duration": 1.5 },
     { "type": "say", "speaker": "", "text": "샘플 끝." },
     { "type": "hide", "position": "left", "duration": 0.4 },
+    { "type": "bgm", "name": "stop", "duration": 1.0 },
     { "type": "end" }
   ]
 }

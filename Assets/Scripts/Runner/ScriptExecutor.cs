@@ -4,7 +4,7 @@ using UnityEngine;
 
 /// <summary>
 /// ScriptData의 명령을 위에서 아래로 실행한다. (3일차)
-/// 구현된 명령: say, label, jump, end (3일차), bg, show, hide (4일차)
+/// 구현된 명령: say, label, jump, end (3일차), bg, show, hide (4일차), bgm, sfx (5일차)
 /// 아직 없는 명령(choice 등)은 경고만 남기고 건너뛴다. 각 기능을 만드는 날 여기에 case를 추가한다.
 /// </summary>
 public class ScriptExecutor
@@ -16,13 +16,16 @@ public class ScriptExecutor
 
     private readonly IDialogueView view;
     private readonly IStageView stage;
+    private readonly IAudioView audio;
     private readonly HashSet<string> warnedTypes = new HashSet<string>();
 
     /// <param name="stage">배경/캐릭터 연출 담당. null이면 bg/show/hide를 경고 후 건너뛴다.</param>
-    public ScriptExecutor(IDialogueView view, IStageView stage = null)
+    /// <param name="audio">BGM/효과음 담당. null이면 bgm/sfx를 경고 후 건너뛴다.</param>
+    public ScriptExecutor(IDialogueView view, IStageView stage = null, IAudioView audio = null)
     {
         this.view = view;
         this.stage = stage;
+        this.audio = audio;
     }
 
     /// <summary>실행 전에 jump/choice 대상 라벨이 모두 존재하는지 검사한다. 문제 목록을 반환 (없으면 빈 리스트).</summary>
@@ -64,20 +67,22 @@ public class ScriptExecutor
                     break;
                 case "bg":
                 case "show":
-                    CheckStageCommand(c, data.id, i, needsName: true, errors);
+                case "bgm":
+                case "sfx":
+                    CheckMediaCommand(c, data.id, i, needsName: true, errors);
                     break;
                 case "hide":
                     // hide는 name이나 position 중 하나만 있으면 된다
                     if (string.IsNullOrEmpty(c.name) && string.IsNullOrEmpty(c.position))
                         errors.Add($"[{data.id}] #{i} hide에 name 또는 position이 필요함");
-                    CheckStageCommand(c, data.id, i, needsName: false, errors);
+                    CheckMediaCommand(c, data.id, i, needsName: false, errors);
                     break;
             }
         }
         return errors;
     }
 
-    private static void CheckStageCommand(ScriptCommand c, string id, int index, bool needsName, List<string> errors)
+    private static void CheckMediaCommand(ScriptCommand c, string id, int index, bool needsName, List<string> errors)
     {
         if (needsName && string.IsNullOrEmpty(c.name))
             errors.Add($"[{id}] #{index} {c.type}에 name이 없음");
@@ -143,6 +148,23 @@ public class ScriptExecutor
                         if (c.type == "bg") yield return stage.SetBackground(c.name, c.duration);
                         else if (c.type == "show") yield return stage.ShowCharacter(c.name, c.position, c.duration);
                         else yield return stage.HideCharacter(c.name, c.position, c.duration);
+                    }
+                    pc++;
+                    break;
+
+                case "bgm":
+                case "sfx":
+                    if (audio == null)
+                    {
+                        WarnOnce(c.type, data.id);
+                    }
+                    else if (c.type == "bgm")
+                    {
+                        audio.PlayBgm(c.name, c.duration);
+                    }
+                    else
+                    {
+                        audio.PlaySfx(c.name);
                     }
                     pc++;
                     break;
