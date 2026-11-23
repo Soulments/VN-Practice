@@ -15,7 +15,7 @@
 | `say` | `speaker`, `text` | 대사 출력. `speaker`가 비면 나레이션 | 구현됨 (3일차) |
 | `label` | `name` | 점프 지점 | 구현됨 (3일차) |
 | `jump` | `target` | 라벨로 무조건 이동 | 구현됨 (3일차) |
-| `end` | - | 스크립트 종료. 엔딩 화면 연결은 8일차 | 종료만 구현 (3일차) |
+| `end` | `name`(선택) | 스크립트 종료. `name`은 엔딩 이름이고 엔딩 화면이 이 이름으로 어떤 엔딩인지 찾는다 | 구현됨 (3일차, 엔딩 이름은 8일차) |
 | `bg` | `name`, `duration` | 배경 교체. 이전 배경 위에서 새 배경이 페이드인 | 구현됨 (4일차) |
 | `show` | `name`, `position`, `duration` | 캐릭터 표시. position: left / center / right (생략하면 center) | 구현됨 (4일차) |
 | `hide` | `name` 또는 `position`, `duration` | 캐릭터 숨김. `position`이 있으면 그 자리, 없으면 `name`이 표시 중인 자리 | 구현됨 (4일차) |
@@ -120,9 +120,27 @@
 ```
 
 - 플래그는 `ScriptExecutor`를 만들 때마다 새로 시작한다. 처음부터 다시 하면 이전 값이 남지 않는다. 그래도 시나리오 맨 앞에 `set`으로 `=0` 초기화를 적어 두면 읽기 쉽다.
-- 현재 값은 `ScriptRunner.Executor.Flags`로 읽는다 (`Get("kindness")`). 엔딩 화면(8일차)이 이것을 쓴다.
+- 현재 값은 `ScriptRunner.Executor.Flags`로 읽는다 (`Get("kindness")`). 엔딩 화면 등 시나리오 밖에서 플래그가 필요할 때 쓴다.
 - 실행 전 검증: `set`/`if`의 `name`이 올바르지 않거나, `set`의 `value`/`if`의 조건/선택지 `set`을 해석할 수 없거나, `if`의 `target` 라벨이 없으면 실행하지 않는다.
 - 세이브/로드는 일정에서 제외되어 있어서 플래그를 저장하지 않는다. 필요해지면 `FlagStore.All`을 저장하고 `Set`으로 복원하면 된다.
+
+## 게임 흐름: 타이틀과 엔딩 화면 (8일차)
+
+`GameFlow`가 전체 흐름을 맡는다: **타이틀 → 시나리오 재생 → 엔딩 화면 → (타이틀로) 타이틀**. 한 씬(`SampleScene`) 안에서 패널을 페이드로 전환한다.
+
+- **타이틀 화면** (`TitlePanel`): 제목, 부제, "시작하기"와 "종료" 버튼. 실행하면 가장 먼저 보이고, "종료"는 빌드에서는 앱을 끄고 에디터에서는 Play를 멈춘다.
+- **엔딩 화면** (`EndingPanel`): 엔딩 제목, 설명, "타이틀로" 버튼. 시나리오가 끝나면 나타난다.
+- **엔딩 이름 연결**: 시나리오의 `end` 명령 `name`이 `GameFlow.endings`의 `id`와 같은 항목을 찾아 제목과 설명을 채운다.
+  ```json
+  { "type": "end", "name": "good" }
+  ```
+  `GameFlow`의 `Endings`(씬 인스펙터)에서 `id`/`title`/`description`을 추가하거나 고친다 (현재 `good`=엔딩 1, `normal`=엔딩 2).
+  `end`에 `name`이 없거나(`THE END`), `endings`에 없는 이름이면(이름이 그대로 제목, 경고) 기본 문구로 보인다.
+- **새 판 시작과 타이틀 복귀**마다 이전 판의 배경, 캐릭터, BGM/효과음, 대사창을 모두 지운다 (`StageManager.ResetStage`, `AudioManager.StopAll`, `DialogueManager.Clear`). 플래그는 `ScriptExecutor`를 새로 만들어서 처음부터 시작한다.
+- 시나리오를 실행하다 오류로 중단되면(`ScriptExecutor.Failed`: 검증 실패, 잘못된 선택, 무한 루프) 엔딩 화면을 보이지 않고 로그를 남기고 타이틀로 돌아간다.
+- 다른 시나리오를 쓰려면 `GameFlow.scriptName`을 바꾼다. 타이틀 없이 시나리오만 바로 시험하려면 `GameFlow` 오브젝트를 끄고 `ScriptRunner.playOnStart`를 켠다.
+- `DialogueManager.autoAdvanceDelay`를 0보다 크게 하면 한 줄이 다 나온 뒤 그 시간(초)이 지나면 입력 없이 다음 줄로 넘어간다. 기본은 0(끔)이고, 자동 시연이나 입력 없이 한 판을 돌려 볼 때 쓴다 (일정에서 뺀 "오토 모드"가 아니라 시험용 옵션이다).
+- 현재 타이틀 배경(`Resources/Backgrounds/title.png`)은 임시 이미지다. 같은 이름으로 덮어쓰면 된다.
 
 ## 구조
 
@@ -132,7 +150,8 @@
 | `Data/ScriptLoader.cs` | Resources에서 JSON을 읽어 `ScriptData`로 변환 |
 | `Runner/ScriptExecutor.cs` | 명령 실행 로직 (순수 C#, 화면과 무관) |
 | `Runner/IDialogueView.cs` | 실행기가 대사를 보여줄 때 쓰는 인터페이스 |
-| `Runner/ScriptRunner.cs` | 씬 진입점. JSON을 읽어 실행기를 돌린다 |
+| `Runner/ScriptRunner.cs` | JSON을 읽어 실행기를 돌린다. `Play(이름)`으로 재생하고 결과(엔딩 이름, 플래그, 실패 여부)는 `Executor`로 읽는다 |
+| `GameFlow.cs` | 타이틀 → 시나리오 → 엔딩 화면 흐름과 판 초기화 |
 | `DialogueManager.cs` | `IDialogueView` 구현. 타이핑 출력과 입력 대기 |
 | `Runner/IStageView.cs` | 실행기가 배경/캐릭터 연출을 요청할 때 쓰는 인터페이스 |
 | `StageManager.cs` | `IStageView` 구현. 배경 2장(교차 페이드)과 캐릭터 3자리를 Canvas의 Image로 표시 |
@@ -152,7 +171,7 @@ Play 모드를 돌리면 글꼴 에셋 파일이 바뀌는데(동적으로 추�
 ## 샘플
 
 `Assets/Resources/Scripts/sample.json` — 배경/BGM/캐릭터 연출, 대사, 선택지 2번, 플래그 누적(`kindness`)과 엔딩 2개, 종료까지 포함한다.
-선택은 복도(인사를 받아준다 `kindness+1`)와 옥상(솔직하게 마음을 전한다 `kindness+1`) 두 번이고, 합이 2 이상이면 엔딩 1, 아니면 엔딩 2다.
+선택은 복도(인사를 받아준다 `kindness+1`)와 옥상(솔직하게 마음을 전한다 `kindness+1`) 두 번이고, 합이 2 이상이면 엔딩 1(`end` name `good`), 아니면 엔딩 2(`normal`)다.
 배경 3장(classroom, hallway, rooftop), 캐릭터 3종(claude_normal, claude_smile, mina_normal), BGM 2곡(daily, evening), 효과음 2개(ding, pop)를 쓴다.
 복도에서 선택지가 나오고, "인사를 받아준다"는 `kind` 분기(효과음 `pop` + "고마워요!"), "무시한다"는 `cold` 분기("...그렇군요.")로 갈라진 뒤 `end`에서 합쳐진다.
 다른 시나리오를 시험하려면 `ScriptRunner`의 `scriptName`을 바꾸면 된다.

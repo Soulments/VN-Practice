@@ -39,6 +39,23 @@ public class StageManager : MonoBehaviour, IStageView
         if (backgroundFront != null) backgroundFront.raycastTarget = false;
     }
 
+    /// <summary>배경과 캐릭터를 모두 즉시 지운다. 새 판을 시작하거나 타이틀로 돌아갈 때 쓴다.</summary>
+    public void ResetStage()
+    {
+        foreach (var background in new[] { backgroundBack, backgroundFront })
+        {
+            background.sprite = null;
+            SetAlpha(background, 0f);
+        }
+
+        foreach (var slot in new List<Image>(slotNames.Keys))
+        {
+            slot.sprite = null;
+            SetAlpha(slot, 0f);
+            slotNames[slot] = null;
+        }
+    }
+
     public IEnumerator SetBackground(string name, float duration)
     {
         var sprite = Load(BackgroundFolder, name);

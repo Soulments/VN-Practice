@@ -15,6 +15,17 @@ public class DialogueManager : MonoBehaviour, IDialogueView
     [Tooltip("글자 하나가 나타나는 간격(초). 0이면 한 번에 표시")]
     public float typeInterval = 0.05f;
 
+    [Tooltip("0보다 크면 한 줄이 다 나온 뒤 이 시간(초)이 지나면 입력이 없어도 자동으로 다음 줄로 넘어간다. 0이면 끔 (자동 시연/테스트용)")]
+    public float autoAdvanceDelay = 0f;
+
+    /// <summary>대사창의 이름과 대사를 비운다. 새 판을 시작하거나 타이틀로 돌아갈 때 쓴다.</summary>
+    public void Clear()
+    {
+        nameText.text = "";
+        dialogueText.text = "";
+        dialogueText.maxVisibleCharacters = int.MaxValue;
+    }
+
     public IEnumerator ShowLine(string speaker, string text)
     {
         // 직전 줄을 넘긴 클릭이 이번 줄에서 또 인식되지 않도록 한 프레임 쉰다
@@ -54,7 +65,16 @@ public class DialogueManager : MonoBehaviour, IDialogueView
 
         // 입력을 소비한 프레임을 넘긴 뒤, 다음으로 넘기는 입력을 기다린다
         yield return null;
-        while (!AdvancePressed()) yield return null;
+        float waited = 0f;
+        while (!AdvancePressed())
+        {
+            if (autoAdvanceDelay > 0f)
+            {
+                waited += Time.deltaTime;
+                if (waited >= autoAdvanceDelay) break;
+            }
+            yield return null;
+        }
     }
 
     static bool AdvancePressed()

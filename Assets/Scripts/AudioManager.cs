@@ -55,6 +55,22 @@ public class AudioManager : MonoBehaviour, IAudioView
         StartBgmRoutine(SwitchBgm(clip, duration));
     }
 
+    /// <summary>BGM과 효과음을 즉시 모두 끈다. 새 판을 시작하거나 타이틀로 돌아갈 때 쓴다.</summary>
+    public void StopAll()
+    {
+        if (bgmRoutine != null)
+        {
+            StopCoroutine(bgmRoutine);
+            bgmRoutine = null;
+        }
+
+        bgmSource.Stop();
+        bgmSource.clip = null;
+        bgmSource.volume = bgmVolume;
+        sfxSource.Stop();
+        CurrentBgm = null;
+    }
+
     public void PlaySfx(string name)
     {
         var clip = Resources.Load<AudioClip>(SfxFolder + name);

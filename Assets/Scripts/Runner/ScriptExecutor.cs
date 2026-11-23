@@ -15,6 +15,12 @@ public class ScriptExecutor
     /// <summary>시나리오가 set/선택지로 바꾸고 if로 읽는 플래그. 실행기마다 새로 만들어져서 다시 시작하면 초기화된다.</summary>
     public FlagStore Flags { get; } = new FlagStore();
 
+    /// <summary>마지막 실행이 `end` 명령으로 끝났다면 그 명령의 name (엔딩 이름). `end`를 만나지 못했거나 name이 없으면 null.</summary>
+    public string EndingId { get; private set; }
+
+    /// <summary>검증 실패, 잘못된 선택, 무한 루프 방지 등 오류로 중단되었으면 true. 정상 종료(`end`나 마지막 명령 도달)면 false.</summary>
+    public bool Failed { get; private set; }
+
     private static readonly HashSet<string> Positions = new HashSet<string> { "left", "center", "right" };
 
     private readonly IDialogueView view;
@@ -126,10 +132,14 @@ public class ScriptExecutor
 
     public IEnumerator Run(ScriptData data)
     {
+        EndingId = null;
+        Failed = false;
+
         var errors = Validate(data);
         if (errors.Count > 0)
         {
             foreach (var error in errors) Debug.LogError(error);
+            Failed = true;
             yield break;
         }
 
@@ -157,6 +167,8 @@ public class ScriptExecutor
                     break;
 
                 case "end":
+                    // name이 엔딩 이름이 된다 (엔딩 화면이 이 이름으로 어떤 엔딩인지 찾는다)
+                    EndingId = string.IsNullOrEmpty(c.name) ? null : c.name;
                     yield break;
 
                 case "bg":
@@ -190,6 +202,7 @@ public class ScriptExecutor
                     if (picked < 0 || picked >= c.options.Length)
                     {
                         Debug.LogError($"[{data.id}] #{pc} choice에서 올바르지 않은 번호가 선택됨: {picked}");
+                        Failed = true;
                         yield break;
                     }
 
@@ -235,6 +248,7 @@ public class ScriptExecutor
             if (++steps > MaxStepsWithoutYield)
             {
                 Debug.LogError($"[{data.id}] 대사 없이 {MaxStepsWithoutYield}개 명령을 실행해 중단함 (jump 무한 루프?) #{pc}");
+                Failed = true;
                 yield break;
             }
         }
