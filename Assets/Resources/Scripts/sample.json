@@ -1,6 +1,7 @@
 {
   "id": "sample",
   "commands": [
+    { "type": "set", "name": "kindness", "value": "=0" },
     { "type": "bg", "name": "classroom", "duration": 0.8 },
     { "type": "bgm", "name": "daily", "duration": 1.0 },
     { "type": "show", "name": "claude_normal", "position": "left", "duration": 0.4 },
@@ -22,14 +23,41 @@
     { "type": "label", "name": "kind" },
     { "type": "sfx", "name": "pop" },
     { "type": "say", "speaker": "클로드", "text": "고마워요!" },
-    { "type": "jump", "target": "end" },
+    { "type": "jump", "target": "rooftop" },
     { "type": "label", "name": "cold" },
     { "type": "say", "speaker": "클로드", "text": "...그렇군요." },
-    { "type": "label", "name": "end" },
+
+    { "type": "label", "name": "rooftop" },
     { "type": "hide", "name": "mina_normal", "duration": 0.4 },
     { "type": "bg", "name": "rooftop", "duration": 0.8 },
     { "type": "bgm", "name": "evening", "duration": 1.5 },
-    { "type": "say", "speaker": "", "text": "샘플 끝." },
+    { "type": "say", "speaker": "", "text": "옥상에는 노을이 지고 있다." },
+    { "type": "say", "speaker": "클로드", "text": "저기, 하고 싶은 말이 있는데요." },
+    {
+      "type": "choice",
+      "options": [
+        { "text": "솔직하게 마음을 전한다", "target": "honest", "set": "kindness+1" },
+        { "text": "웃으며 넘긴다", "target": "evade" }
+      ]
+    },
+    { "type": "label", "name": "honest" },
+    { "type": "say", "speaker": "클로드", "text": "...사실 계속 말하고 싶었어요." },
+    { "type": "jump", "target": "judge" },
+    { "type": "label", "name": "evade" },
+    { "type": "say", "speaker": "클로드", "text": "그, 그렇죠. 별일 아니에요." },
+
+    { "type": "label", "name": "judge" },
+    { "type": "if", "name": "kindness", "value": ">=2", "target": "ending_good" },
+    { "type": "jump", "target": "ending_normal" },
+
+    { "type": "label", "name": "ending_good" },
+    { "type": "say", "speaker": "", "text": "[엔딩 1] 서로의 마음이 닿았다." },
+    { "type": "jump", "target": "finish" },
+
+    { "type": "label", "name": "ending_normal" },
+    { "type": "say", "speaker": "", "text": "[엔딩 2] 아무 일도 없었던 것처럼 하루가 저물었다." },
+
+    { "type": "label", "name": "finish" },
     { "type": "hide", "position": "left", "duration": 0.4 },
     { "type": "bgm", "name": "stop", "duration": 1.0 },
     { "type": "end" }
