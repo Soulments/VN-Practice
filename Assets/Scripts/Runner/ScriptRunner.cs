@@ -27,8 +27,8 @@ public class ScriptRunner : MonoBehaviour
         if (playOnStart) StartCoroutine(Play(scriptName));
     }
 
-    /// <summary>스크립트를 처음부터 끝까지 재생한다. 끝나면 Executor로 결과를 확인한다.</summary>
-    public IEnumerator Play(string name)
+    /// <summary>스크립트를 처음부터 끝까지 재생한다. 끝나면 Executor로 결과를 확인한다. resume을 주면 그 세이브 자리에서 이어 간다.</summary>
+    public IEnumerator Play(string name, SaveData resume = null)
     {
         Executor = null;
 
@@ -51,6 +51,6 @@ public class ScriptRunner : MonoBehaviour
             Debug.LogWarning("ScriptRunner: choiceView가 연결되지 않아 선택지는 건너뜀");
 
         Executor = new ScriptExecutor(dialogueView, stageView, audioView, choiceView);
-        yield return Executor.Run(data);
+        yield return Executor.Run(data, resume);
     }
 }

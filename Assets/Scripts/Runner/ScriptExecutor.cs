@@ -21,6 +21,20 @@ public class ScriptExecutor
     /// <summary>검증 실패, 잘못된 선택, 무한 루프 방지 등 오류로 중단되었으면 true. 정상 종료(`end`나 마지막 명령 도달)면 false.</summary>
     public bool Failed { get; private set; }
 
+    /// <summary>대사나 선택지에서 플레이어의 입력을 기다리는 중이면 그 명령 번호, 아니면 -1. 저장은 이때만 할 수 있다.</summary>
+    public int WaitingPc { get; private set; } = -1;
+
+    public bool CanSave => WaitingPc >= 0;
+
+    // 저장할 때 필요한 화면 상태. 실행기가 명령을 따라가며 직접 기록하므로 View에서 되읽지 않는다.
+    private string background;
+    private string bgm;
+    private readonly Dictionary<string, string> slots = new Dictionary<string, string>
+    {
+        { "left", null }, { "center", null }, { "right", null },
+    };
+    private ScriptData currentData;
+
     private static readonly HashSet<string> Positions = new HashSet<string> { "left", "center", "right" };
 
     private readonly IDialogueView view;
@@ -130,10 +144,17 @@ public class ScriptExecutor
             errors.Add($"[{id}] #{index} {type}의 대상 라벨을 찾을 수 없음: {target}");
     }
 
-    public IEnumerator Run(ScriptData data)
+    /// <param name="resume">null이면 처음부터, 세이브 내용을 주면 그 자리의 화면 상태와 플래그를 되살린 뒤 거기서부터 이어서 실행한다.</param>
+    public IEnumerator Run(ScriptData data, SaveData resume = null)
     {
         EndingId = null;
         Failed = false;
+        WaitingPc = -1;
+        currentData = data;
+        background = null;
+        bgm = null;
+        foreach (var key in new List<string>(slots.Keys)) slots[key] = null;
+        Flags.Clear();
 
         var errors = Validate(data);
         if (errors.Count > 0)
@@ -147,6 +168,19 @@ public class ScriptExecutor
         int pc = 0;
         int steps = 0;
 
+        if (resume != null)
+        {
+            string problem = CheckResume(data, resume);
+            if (problem != null)
+            {
+                Debug.LogError(problem);
+                Failed = true;
+                yield break;
+            }
+            yield return Restore(resume);
+            pc = resume.pc;
+        }
+
         while (pc < data.commands.Length)
         {
             var c = data.commands[pc];
@@ -154,7 +188,9 @@ public class ScriptExecutor
             {
                 case "say":
                     steps = 0;
+                    WaitingPc = pc;
                     yield return view.ShowLine(c.speaker, c.text);
+                    WaitingPc = -1;
                     pc++;
                     break;
 
@@ -174,6 +210,7 @@ public class ScriptExecutor
                 case "bg":
                 case "show":
                 case "hide":
+                    TrackStage(c);
                     if (stage == null)
                     {
                         WarnOnce(c.type, data.id);
@@ -198,7 +235,9 @@ public class ScriptExecutor
 
                     steps = 0;
                     int picked = -1;
+                    WaitingPc = pc;
                     yield return choice.ShowChoices(OptionTexts(c), index => picked = index);
+                    WaitingPc = -1;
                     if (picked < 0 || picked >= c.options.Length)
                     {
                         Debug.LogError($"[{data.id}] #{pc} choice에서 올바르지 않은 번호가 선택됨: {picked}");
@@ -224,6 +263,7 @@ public class ScriptExecutor
 
                 case "bgm":
                 case "sfx":
+                    if (c.type == "bgm") bgm = c.name == AudioManager.StopName ? null : c.name;
                     if (audio == null)
                     {
                         WarnOnce(c.type, data.id);
@@ -251,6 +291,119 @@ public class ScriptExecutor
                 Failed = true;
                 yield break;
             }
+        }
+    }
+
+    // ---- 저장과 불러오기 ----
+
+    /// <summary>
+    /// 지금 입력을 기다리는 자리를 세이브 내용으로 만든다. 대사나 선택지에서 기다리는 중이 아니면(연출 중 등) null.
+    /// scriptName은 채우지 않으므로 부르는 쪽에서 넣는다.
+    /// </summary>
+    public SaveData Capture()
+    {
+        if (!CanSave || currentData == null) return null;
+
+        var c = currentData.commands[WaitingPc];
+        return new SaveData
+        {
+            pc = WaitingPc,
+            lineKey = LineKey(c),
+            background = background,
+            left = slots["left"],
+            center = slots["center"],
+            right = slots["right"],
+            bgm = bgm,
+            flags = SaveData.PackFlags(Flags.All),
+            preview = Preview(c),
+        };
+    }
+
+    /// <summary>세이브를 이 시나리오에서 이어 갈 수 있는지 검사한다. 문제가 없으면 null, 있으면 이유를 돌려준다.</summary>
+    public static string CheckResume(ScriptData data, SaveData save)
+    {
+        if (save.version != SaveData.CurrentVersion)
+            return $"세이브 버전이 맞지 않음: {save.version}";
+        if (save.pc < 0 || save.pc >= data.commands.Length)
+            return $"[{data.id}] 세이브 위치가 시나리오 범위를 벗어남: #{save.pc}";
+
+        var c = data.commands[save.pc];
+        if (c.type != "say" && c.type != "choice")
+            return $"[{data.id}] 세이브 위치 #{save.pc}가 대사나 선택지가 아님: {c.type}";
+        if (LineKey(c) != save.lineKey)
+            return $"[{data.id}] 세이브 이후 시나리오가 바뀌어 이어 할 수 없음: #{save.pc}";
+        return null;
+    }
+
+    private static string LineKey(ScriptCommand c)
+    {
+        if (c.type == "choice") return "choice|" + string.Join("|", OptionTexts(c));
+        return "say|" + c.speaker + "|" + c.text;
+    }
+
+    private static string Preview(ScriptCommand c)
+    {
+        const int MaxLength = 30;
+        if (c.type == "choice") return "(선택지)";
+
+        string line = string.IsNullOrEmpty(c.speaker) ? c.text : c.speaker + ": " + c.text;
+        return line.Length <= MaxLength ? line : line.Substring(0, MaxLength) + "…";
+    }
+
+    /// <summary>저장된 배경, 캐릭터, BGM, 플래그를 즉시(페이드 없이) 되살린다.</summary>
+    private IEnumerator Restore(SaveData save)
+    {
+        if (save.flags != null)
+        {
+            foreach (var flag in save.flags)
+            {
+                if (FlagStore.IsValidName(flag.name)) Flags.Set(flag.name, flag.value);
+            }
+        }
+
+        if (!string.IsNullOrEmpty(save.background))
+        {
+            background = save.background;
+            if (stage != null) yield return stage.SetBackground(save.background, 0f);
+        }
+
+        var characters = new[] { ("left", save.left), ("center", save.center), ("right", save.right) };
+        foreach (var (position, name) in characters)
+        {
+            if (string.IsNullOrEmpty(name)) continue;
+            slots[position] = name;
+            if (stage != null) yield return stage.ShowCharacter(name, position, 0f);
+        }
+
+        if (!string.IsNullOrEmpty(save.bgm))
+        {
+            bgm = save.bgm;
+            if (audio != null) audio.PlayBgm(save.bgm, 0f);
+        }
+    }
+
+    /// <summary>bg/show/hide를 따라가며 어느 자리에 무엇이 있는지 기록한다 (저장용).</summary>
+    private void TrackStage(ScriptCommand c)
+    {
+        switch (c.type)
+        {
+            case "bg":
+                background = c.name;
+                break;
+            case "show":
+                slots[string.IsNullOrEmpty(c.position) ? "center" : c.position] = c.name;
+                break;
+            case "hide":
+                if (!string.IsNullOrEmpty(c.position))
+                {
+                    slots[c.position] = null;
+                    break;
+                }
+                foreach (var key in new List<string>(slots.Keys))
+                {
+                    if (slots[key] == c.name) slots[key] = null;
+                }
+                break;
         }
     }
 

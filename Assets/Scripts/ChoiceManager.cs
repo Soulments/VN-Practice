@@ -23,6 +23,19 @@ public class ChoiceManager : MonoBehaviour, IChoiceView
         if (buttonTemplate != null) buttonTemplate.gameObject.SetActive(false);
     }
 
+    /// <summary>떠 있는 선택지 버튼을 모두 치우고 container를 숨긴다. 선택 도중에 다른 세이브를 불러올 때 쓴다.</summary>
+    public void Clear()
+    {
+        if (container == null) return;
+        for (int i = container.childCount - 1; i >= 0; i--)
+        {
+            var child = container.GetChild(i).gameObject;
+            if (buttonTemplate != null && child == buttonTemplate.gameObject) continue;
+            Destroy(child);
+        }
+        container.gameObject.SetActive(false);
+    }
+
     public IEnumerator ShowChoices(IList<string> options, Action<int> onChosen)
     {
         int chosen = -1;
