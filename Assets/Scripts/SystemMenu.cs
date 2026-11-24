@@ -18,13 +18,17 @@ public class SystemMenu : MonoBehaviour
     [Tooltip("복제할 버튼 견본 (ChoiceManager의 buttonTemplate을 연결한다)")]
     public Button buttonTemplate;
 
+    [Tooltip("스킵을 멈출 때 선택지가 떴는지 보기 위한 연결. 비워 두면 씬에서 찾는다")]
+    public ChoiceManager choiceManager;
+
     private enum View { Main, Save, Load }
 
     private TextMeshProUGUI templateText;
     private GameObject panel;
     private TextMeshProUGUI header;
     private TextMeshProUGUI status;
-    private Button menuButton;
+    private Button menuButton, autoButton, skipButton;
+    private Color hudNormalColor;
     private Button titleLoadButton;
     private Button backlogButton, saveButton, loadButton, titleButton, closeButton;
     private GameObject backlogPanel;
@@ -47,11 +51,8 @@ public class SystemMenu : MonoBehaviour
     {
         if (gameFlow == null) gameFlow = FindFirstObjectByType<GameFlow>();
         if (dialogue == null) dialogue = FindFirstObjectByType<DialogueManager>();
-        if (buttonTemplate == null)
-        {
-            var choice = FindFirstObjectByType<ChoiceManager>();
-            if (choice != null) buttonTemplate = choice.buttonTemplate;
-        }
+        if (choiceManager == null) choiceManager = FindFirstObjectByType<ChoiceManager>();
+        if (buttonTemplate == null && choiceManager != null) buttonTemplate = choiceManager.buttonTemplate;
         if (gameFlow == null || buttonTemplate == null)
         {
             Debug.LogError("SystemMenu: GameFlow 또는 버튼 견본이 연결되지 않아 메뉴를 만들지 못함");
@@ -71,9 +72,28 @@ public class SystemMenu : MonoBehaviour
     void Update()
     {
         var state = gameFlow.Current;
-        menuButton.gameObject.SetActive(state == GameFlow.State.Playing && !IsOpen);
+        bool hud = state == GameFlow.State.Playing && !IsOpen;
+        menuButton.gameObject.SetActive(hud);
+        autoButton.gameObject.SetActive(hud);
+        skipButton.gameObject.SetActive(hud);
+
+        if (dialogue != null)
+        {
+            // 판 밖(타이틀, 엔딩)에서는 오토/스킵을 끄고, 선택지가 뜨면 스킵을 멈춘다
+            if (state != GameFlow.State.Playing) dialogue.Mode.Stop();
+            else if (choiceManager != null && choiceManager.container.gameObject.activeSelf) dialogue.Mode.SetSkip(false);
+
+            SetToggleVisual(autoButton, dialogue.Mode.Auto);
+            SetToggleVisual(skipButton, dialogue.Mode.Skip);
+        }
 
         var keyboard = Keyboard.current;
+        if (hud && dialogue != null && keyboard != null)
+        {
+            if (keyboard.aKey.wasPressedThisFrame) dialogue.Mode.ToggleAuto();
+            if (keyboard.sKey.wasPressedThisFrame) dialogue.Mode.ToggleSkip();
+        }
+
         if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
         {
             if (IsBacklogOpen) CloseBacklog();
@@ -92,6 +112,7 @@ public class SystemMenu : MonoBehaviour
     private void OpenFromGame()
     {
         openedFromTitle = false;
+        if (dialogue != null) dialogue.Mode.Stop();
         if (dialogue != null) dialogue.Paused = true;
         panel.SetActive(true);
         ShowView(View.Main);
@@ -115,6 +136,7 @@ public class SystemMenu : MonoBehaviour
     private void OpenBacklog(bool fromMenu)
     {
         backlogFromMenu = fromMenu;
+        if (dialogue != null) dialogue.Mode.Stop();
         if (dialogue != null) dialogue.Paused = true;
         panel.SetActive(false);
         backlogPanel.SetActive(true);
@@ -215,7 +237,10 @@ public class SystemMenu : MonoBehaviour
         }
 
         if (gameFlow.LoadFromSlot(slot, out string message))
+        {
+            if (dialogue != null) dialogue.Mode.Stop();
             Close();
+        }
         else
             status.text = message;
     }
@@ -351,26 +376,50 @@ public class SystemMenu : MonoBehaviour
 
     private void BuildMenuButton()
     {
-        menuButton = Instantiate(buttonTemplate, transform);
-        menuButton.gameObject.name = "MenuButton";
-        menuButton.gameObject.SetActive(true);
-        menuButton.onClick.RemoveAllListeners();
-        menuButton.onClick.AddListener(OpenFromGame);
-        SetLabel(menuButton, "메뉴");
-        menuButton.GetComponentInChildren<TextMeshProUGUI>().fontSize = 24f;
+        // 오른쪽 위에 오토, 스킵, 메뉴 순서로 나란히 둔다
+        menuButton = NewHudButton("MenuButton", "메뉴", -24f, 120f, OpenFromGame);
+        skipButton = NewHudButton("SkipButton", "SKIP", -154f, 120f, () => dialogue.Mode.ToggleSkip());
+        autoButton = NewHudButton("AutoButton", "AUTO", -284f, 120f, () => dialogue.Mode.ToggleAuto());
+        hudNormalColor = menuButton.colors.normalColor;
+        panel.transform.SetAsLastSibling();
+    }
 
-        var layout = menuButton.GetComponent<LayoutElement>();
+    private Button NewHudButton(string name, string label, float x, float width, UnityAction onClick)
+    {
+        var button = Instantiate(buttonTemplate, transform);
+        button.gameObject.name = name;
+        button.gameObject.SetActive(true);
+        button.onClick.RemoveAllListeners();
+        button.onClick.AddListener(onClick);
+        SetLabel(button, label);
+        var labelText = button.GetComponentInChildren<TextMeshProUGUI>();
+        labelText.fontSize = 22f;
+        labelText.textWrappingMode = TextWrappingModes.NoWrap;
+
+        var layout = button.GetComponent<LayoutElement>();
         if (layout != null) Destroy(layout);
 
-        var rect = (RectTransform)menuButton.transform;
+        var rect = (RectTransform)button.transform;
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 1f);
-        rect.anchoredPosition = new Vector2(-24f, -20f);
-        rect.sizeDelta = new Vector2(120f, 46f);
+        rect.anchoredPosition = new Vector2(x, -20f);
+        rect.sizeDelta = new Vector2(width, 46f);
 
         // 이 버튼을 누르는 클릭이 "다음 줄" 입력으로도 세어지지 않게 한다
         if (dialogue != null) dialogue.clickBlockers.Add(rect);
-        menuButton.gameObject.SetActive(false);
-        panel.transform.SetAsLastSibling();
+        button.gameObject.SetActive(false);
+        return button;
+    }
+
+    /// <summary>켜져 있는 오토/스킵 버튼은 금빛으로 보이게 한다.</summary>
+    private void SetToggleVisual(Button button, bool on)
+    {
+        var colors = button.colors;
+        var wanted = on ? new Color(0.5f, 0.38f, 0.08f, 0.95f) : hudNormalColor;
+        if (colors.normalColor == wanted) return;
+
+        colors.normalColor = wanted;
+        button.colors = colors;
+        button.GetComponentInChildren<TextMeshProUGUI>(true).color = on ? new Color(1f, 0.9f, 0.5f) : Color.white;
     }
 
     private void BuildTitleLoadButton()
