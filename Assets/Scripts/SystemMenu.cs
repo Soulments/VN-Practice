@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
-/// 저장/불러오기 메뉴와 백로그. 플레이 중에는 오른쪽 위의 "메뉴" 버튼(또는 Esc)으로 열고, 타이틀에서는 "불러오기" 버튼으로 연다.
+/// 저장/불러오기 메뉴, 백로그, 설정 화면. 플레이 중에는 오른쪽 위의 "메뉴" 버튼(또는 Esc)으로 열고, 타이틀에서는 "불러오기" 버튼으로 연다.
 /// 백로그(지금까지 읽은 대사 기록)는 메뉴의 "백로그" 버튼이나 마우스 휠을 위로 굴리면 열린다.
 /// 화면은 모두 코드로 만든다. 버튼 모양은 선택지 버튼 견본(buttonTemplate)을 복제해서 다른 화면과 같게 맞춘다.
 /// 저장과 불러오기 자체는 GameFlow가 하고, 여기서는 슬롯 목록을 보여 주고 누른 슬롯을 GameFlow에 넘기기만 한다.
@@ -21,7 +21,7 @@ public class SystemMenu : MonoBehaviour
     [Tooltip("스킵을 멈출 때 선택지가 떴는지 보기 위한 연결. 비워 두면 씬에서 찾는다")]
     public ChoiceManager choiceManager;
 
-    private enum View { Main, Save, Load }
+    private enum View { Main, Save, Load, Settings }
 
     private TextMeshProUGUI templateText;
     private GameObject panel;
@@ -30,7 +30,15 @@ public class SystemMenu : MonoBehaviour
     private Button menuButton, autoButton, skipButton;
     private Color hudNormalColor;
     private Button titleLoadButton;
-    private Button backlogButton, saveButton, loadButton, titleButton, closeButton;
+    private Button backlogButton, saveButton, loadButton, settingsButton, titleButton, closeButton;
+    private Button titleSettingsButton;
+    private GameObject[] settingsRows;
+    private TextMeshProUGUI textSpeedValue, bgmValue, sfxValue;
+    private Button textSpeedMinus, textSpeedPlus, bgmMinus, bgmPlus, sfxMinus, sfxPlus;
+
+    private readonly GameSettings settings = new GameSettings();
+    private readonly ISettingsStore settingsStore = new PlayerPrefsSettingsStore();
+    private AudioManager audioManager;
     private GameObject backlogPanel;
     private TextMeshProUGUI backlogText;
     private RectTransform backlogContent;
@@ -52,6 +60,7 @@ public class SystemMenu : MonoBehaviour
         if (gameFlow == null) gameFlow = FindFirstObjectByType<GameFlow>();
         if (dialogue == null) dialogue = FindFirstObjectByType<DialogueManager>();
         if (choiceManager == null) choiceManager = FindFirstObjectByType<ChoiceManager>();
+        audioManager = FindFirstObjectByType<AudioManager>();
         if (buttonTemplate == null && choiceManager != null) buttonTemplate = choiceManager.buttonTemplate;
         if (gameFlow == null || buttonTemplate == null)
         {
@@ -67,6 +76,10 @@ public class SystemMenu : MonoBehaviour
         BuildTitleLoadButton();
         panel.SetActive(false);
         backlogPanel.SetActive(false);
+
+        // 저장해 둔 설정을 대사창과 오디오에 적용한다
+        settings.Load(settingsStore);
+        ApplySettings();
     }
 
     void Update()
@@ -123,6 +136,13 @@ public class SystemMenu : MonoBehaviour
         openedFromTitle = true;
         panel.SetActive(true);
         ShowView(View.Load);
+    }
+
+    private void OpenSettingsFromTitle()
+    {
+        openedFromTitle = true;
+        panel.SetActive(true);
+        ShowView(View.Settings);
     }
 
     private void Close()
@@ -190,16 +210,49 @@ public class SystemMenu : MonoBehaviour
         status.text = "";
 
         bool main = next == View.Main;
-        header.text = main ? "메뉴" : next == View.Save ? "저장하기" : "불러오기";
+        bool slots = next == View.Save || next == View.Load;
+        header.text = main ? "메뉴" : next == View.Save ? "저장하기" : next == View.Load ? "불러오기" : "설정";
 
-        foreach (var b in new[] { backlogButton, saveButton, loadButton, titleButton, closeButton }) b.gameObject.SetActive(main);
-        foreach (var b in slotButtons) b.gameObject.SetActive(!main);
+        foreach (var b in new[] { backlogButton, saveButton, loadButton, settingsButton, titleButton, closeButton }) b.gameObject.SetActive(main);
+        foreach (var b in slotButtons) b.gameObject.SetActive(slots);
+        foreach (var row in settingsRows) row.SetActive(next == View.Settings);
         backButton.gameObject.SetActive(!main);
         SetLabel(backButton, openedFromTitle ? "닫기" : "뒤로");
         SetLabel(titleButton, "타이틀로");
 
         if (main) SetEnabled(saveButton, gameFlow.CanSaveNow);
-        else RefreshSlots();
+        else if (slots) RefreshSlots();
+        else RefreshSettings();
+    }
+
+    // ---- 설정 ----
+
+    private void OnSettingsChanged()
+    {
+        ApplySettings();
+        settings.Save(settingsStore);
+        RefreshSettings();
+    }
+
+    private void ApplySettings()
+    {
+        if (dialogue != null) dialogue.typeInterval = settings.TypeInterval;
+        if (audioManager != null) audioManager.SetVolumes(settings.BgmVolume, settings.SfxVolume);
+    }
+
+    private void RefreshSettings()
+    {
+        textSpeedValue.text = settings.TextSpeedName;
+        bgmValue.text = settings.BgmStep * 10 + "%";
+        sfxValue.text = settings.SfxStep * 10 + "%";
+
+        // 끝까지 갔으면 더 못 가는 쪽 버튼을 어둡게 한다
+        SetEnabled(textSpeedMinus, settings.TextSpeed > 0);
+        SetEnabled(textSpeedPlus, settings.TextSpeed < GameSettings.TextSpeedNames.Length - 1);
+        SetEnabled(bgmMinus, settings.BgmStep > 0);
+        SetEnabled(bgmPlus, settings.BgmStep < GameSettings.MaxVolumeStep);
+        SetEnabled(sfxMinus, settings.SfxStep > 0);
+        SetEnabled(sfxPlus, settings.SfxStep < GameSettings.MaxVolumeStep);
     }
 
     private void RefreshSlots()
@@ -292,6 +345,7 @@ public class SystemMenu : MonoBehaviour
         backlogButton = NewButton(window.transform, "백로그", 60f, () => OpenBacklog(true));
         saveButton = NewButton(window.transform, "저장하기", 60f, () => ShowView(View.Save));
         loadButton = NewButton(window.transform, "불러오기", 60f, () => ShowView(View.Load));
+        settingsButton = NewButton(window.transform, "설정", 60f, () => ShowView(View.Settings));
         titleButton = NewButton(window.transform, "타이틀로", 60f, OnTitleClicked);
         closeButton = NewButton(window.transform, "닫기", 60f, Close);
 
@@ -301,7 +355,58 @@ public class SystemMenu : MonoBehaviour
             slotButtons[i] = NewButton(window.transform, "슬롯 " + slot, 84f, () => OnSlotClicked(slot));
             slotButtons[i].GetComponentInChildren<TextMeshProUGUI>().fontSize = 24f;
         }
+
+        var textSpeedRow = NewSettingRow(window.transform, "글자 속도",
+            delta => { if (settings.StepTextSpeed(delta)) OnSettingsChanged(); },
+            out textSpeedValue, out textSpeedMinus, out textSpeedPlus);
+        var bgmRow = NewSettingRow(window.transform, "배경음 크기",
+            delta => { if (settings.StepBgm(delta)) OnSettingsChanged(); },
+            out bgmValue, out bgmMinus, out bgmPlus);
+        var sfxRow = NewSettingRow(window.transform, "효과음 크기",
+            delta => { if (settings.StepSfx(delta)) OnSettingsChanged(); },
+            out sfxValue, out sfxMinus, out sfxPlus);
+        settingsRows = new[] { textSpeedRow, bgmRow, sfxRow };
+
         backButton = NewButton(window.transform, "뒤로", 56f, OnBack);
+    }
+
+    /// <summary>"이름   [-]  값  [+]" 한 줄. onStep은 -1(내리기)이나 +1(올리기)로 불린다.</summary>
+    private GameObject NewSettingRow(Transform parent, string label, System.Action<int> onStep,
+        out TextMeshProUGUI value, out Button minus, out Button plus)
+    {
+        var row = NewObject(label + " 줄", parent);
+        var rowLayout = row.AddComponent<HorizontalLayoutGroup>();
+        rowLayout.spacing = 12f;
+        rowLayout.childAlignment = TextAnchor.MiddleCenter;
+        rowLayout.childControlWidth = true;
+        rowLayout.childControlHeight = true;
+        rowLayout.childForceExpandWidth = false;
+        rowLayout.childForceExpandHeight = true;
+        var rowSize = row.AddComponent<LayoutElement>();
+        rowSize.minHeight = rowSize.preferredHeight = 64f;
+
+        var labelText = NewText("Label", row.transform, 28f, 64f, Color.white);
+        labelText.text = label;
+        labelText.alignment = TextAlignmentOptions.MidlineLeft;
+        labelText.GetComponent<LayoutElement>().flexibleWidth = 1f;
+
+        minus = NewButton(row.transform, "-", 64f, () => onStep(-1));
+        FixedWidth(minus, 72f);
+
+        value = NewText("Value", row.transform, 28f, 64f, Color.white);
+        value.alignment = TextAlignmentOptions.Midline;
+        value.GetComponent<LayoutElement>().preferredWidth = 150f;
+
+        plus = NewButton(row.transform, "+", 64f, () => onStep(1));
+        FixedWidth(plus, 72f);
+        return row;
+    }
+
+    private static void FixedWidth(Button button, float width)
+    {
+        var layout = button.GetComponent<LayoutElement>();
+        layout.flexibleWidth = 0f;
+        layout.minWidth = layout.preferredWidth = width;
     }
 
     private void BuildBacklog()
@@ -435,7 +540,15 @@ public class SystemMenu : MonoBehaviour
 
         var rect = (RectTransform)titleLoadButton.transform;
         var startRect = (RectTransform)start.transform;
-        rect.anchoredPosition = startRect.anchoredPosition + new Vector2(0f, -(startRect.rect.height + 20f));
+        float step = startRect.rect.height + 20f;
+        rect.anchoredPosition = startRect.anchoredPosition + new Vector2(0f, -step);
+
+        titleSettingsButton = Instantiate(start, start.transform.parent);
+        titleSettingsButton.gameObject.name = "SettingsButton";
+        titleSettingsButton.onClick.RemoveAllListeners();
+        titleSettingsButton.onClick.AddListener(OpenSettingsFromTitle);
+        SetLabel(titleSettingsButton, "설정");
+        ((RectTransform)titleSettingsButton.transform).anchoredPosition = startRect.anchoredPosition + new Vector2(0f, -2f * step);
     }
 
     // ---- 작은 도우미 ----
