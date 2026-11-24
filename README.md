@@ -1,41 +1,29 @@
 # VN-Practice
 
-Unity 6으로 만든 짧은 비주얼 노벨입니다. 시나리오(JSON)를 읽어 대사, 배경, 캐릭터, 음악, 선택지, 플래그 분기, 엔딩을 처리하는 **스크립트 실행 엔진**을 직접 구현한 연습 프로젝트이고, 평일 하루 2시간씩 10일(2주) 일정으로 만들었습니다.
+Unity 6으로 만든 짧은 비주얼 노벨입니다. 시나리오를 JSON으로 쓰면 대사, 배경, 캐릭터, 음악, 선택지, 엔딩까지 알아서 돌아가는 작은 엔진을 만들어 보는 게 목표였고, 평일 하루 2시간씩 2주 일정으로 잡고 작업했습니다.
 
-| 타이틀 | 대사 | 선택지 |
-|:--:|:--:|:--:|
-| ![타이틀](Docs/screenshots/01-title.png) | ![대사](Docs/screenshots/02-dialogue.png) | ![선택지](Docs/screenshots/03-choice.png) |
-| **복도** | **옥상** | **엔딩** |
-| ![복도](Docs/screenshots/04-hallway.png) | ![옥상](Docs/screenshots/05-rooftop.png) | ![엔딩](Docs/screenshots/06-ending.png) |
+<p>
+  <img src="Docs/screenshots/01-title.png" width="32%">
+  <img src="Docs/screenshots/02-dialogue.png" width="32%">
+  <img src="Docs/screenshots/03-choice.png" width="32%">
+</p>
+<p>
+  <img src="Docs/screenshots/04-hallway.png" width="32%">
+  <img src="Docs/screenshots/05-rooftop.png" width="32%">
+  <img src="Docs/screenshots/06-ending.png" width="32%">
+</p>
 
-> 현재 배경, 캐릭터, 음악, 효과음은 모두 **임시(placeholder)** 입니다. 같은 파일 이름으로 덮어쓰면 코드와 시나리오를 고치지 않아도 교체됩니다 ([Docs/story.md](Docs/story.md)).
+배경, 캐릭터, 음악은 아직 임시로 만든 placeholder입니다. 같은 파일 이름으로 덮어쓰면 코드나 시나리오를 건드리지 않고 바꿀 수 있습니다.
 
-## 플레이 방법
+## 게임
 
-- **다음 줄**: 마우스 왼쪽 클릭, `Space`, `Enter`. 글자가 나오는 중에 누르면 그 줄이 한 번에 다 나오고, 한 번 더 누르면 다음 줄로 넘어갑니다.
-- **선택지**: 버튼을 클릭합니다.
-- 타이틀에서 **시작하기**를 누르면 시작하고, 엔딩 화면에서 **타이틀로**를 누르면 처음으로 돌아가 다시 할 수 있습니다.
-- 한 판은 약 4~6분이고, 엔딩은 2개입니다.
+축제 전날 방과 후, 연극 주인공을 맡은 지후가 무대에 서는 게 무섭다고 털어놓습니다. 플레이어는 반장 "나"가 되어 교실, 복도, 옥상에서 세 번 선택하고, 지후에게 마음을 열어 주는 선택을 두 번 이상 하면 좋은 엔딩이 나옵니다. 한 판은 4~6분 정도이고 엔딩은 두 개입니다.
 
-## 이야기
+클릭이나 `Space`, `Enter`로 다음 줄로 넘어갑니다. 글자가 나오는 중에 누르면 그 줄이 한 번에 나옵니다.
 
-축제 전날 방과 후, 연극 주인공 역을 맡은 지후가 무대 공포를 털어놓습니다. 플레이어는 반장인 "나"가 되어 교실, 복도, 옥상에서 세 번 선택합니다. 마음을 열어 주는 선택을 두 번 이상 하면 **엔딩 1(함께 선 무대)**, 아니면 **엔딩 2(엇갈린 박수)** 입니다. 자세한 분기는 [Docs/story.md](Docs/story.md)에 있습니다.
+## 어떻게 돌아가나
 
-## 구현한 기능
-
-| 기능 | 설명 |
-|---|---|
-| 스크립트 실행기 | JSON 명령(`say`, `label`, `jump`, `if`, `set`, `choice`, `end` 등)을 위에서 아래로 실행하고, 실행 전에 라벨 대상과 값을 검증 |
-| 대사창 | 한 글자씩 타이핑 출력, 입력 시 즉시 완성, 화자 이름 표시 |
-| 연출 | 배경 교차 페이드, 캐릭터 3자리(left/center/right) 표시/교체/숨김, 표정 교체 |
-| 사운드 | BGM 1채널(곡 교체 시 페이드), 효과음 |
-| 선택지와 분기 | 선택지 버튼, 라벨 점프 |
-| 플래그와 엔딩 | 정수 플래그(`kindness+1`처럼 갱신), 조건 분기(`>=2` 등), 엔딩 이름으로 엔딩 화면 연결 |
-| 게임 흐름 | 타이틀 → 시나리오 → 엔딩 화면 → 타이틀, 판마다 화면과 소리와 플래그 초기화 |
-
-세이브/로드, 백로그, 오토/스킵은 일정에서 제외했습니다.
-
-시나리오는 이런 JSON입니다 ([Docs/script-format.md](Docs/script-format.md)).
+시나리오는 명령을 나열한 JSON입니다. `say`, `bg`, `show`, `hide`, `bgm`, `sfx`, `choice`, `label`, `jump`, `set`, `if`, `end`가 있고, 실행기가 위에서부터 하나씩 실행합니다. 분기는 `label`과 `jump`로 만들고, 선택지에서 `trust+1`처럼 플래그를 올린 뒤 마지막에 `if`로 엔딩을 가릅니다.
 
 ```json
 { "type": "say", "speaker": "지후", "text": "하아... 또 틀렸어." },
@@ -45,57 +33,47 @@ Unity 6으로 만든 짧은 비주얼 노벨입니다. 시나리오(JSON)를 읽
 { "type": "if", "name": "trust", "value": ">=2", "target": "ending_good" }
 ```
 
-## 테스트와 검증
+게임 흐름은 타이틀, 시나리오 재생, 엔딩 화면, 다시 타이틀 순서입니다. 판이 끝나면 배경, 캐릭터, 소리, 플래그를 전부 초기화해서 바로 다시 할 수 있습니다.
 
-- **자동 테스트 141개** (EditMode, 몇 초): 에디터의 `Window > General > Test Runner`에서 실행하거나 `unity test run --mode editor`. 플래그 문법, 실행기 동작, 그리고 실제 시나리오의 **모든 선택 조합**이 오류 없이 끝나는지 확인합니다.
-- **시나리오 검증 메뉴** `VN → Validate Scripts`: 없는 이미지/소리 파일, 도달할 수 없는 대사, 엔딩 연결 같은 문제를 시나리오를 고친 직후에 미리 찾아 줍니다.
-- 자세한 내용은 [Docs/testing.md](Docs/testing.md)를 보세요.
+## 만들면서 막혔던 것들
 
-## 구조
+`JsonUtility`가 명령마다 다른 클래스로 읽어 주지 못해서, 모든 명령을 `type` 문자열과 선택 필드를 가진 클래스 하나로 두었습니다. 대신 실행하기 전에 라벨 이름, 값 문법, 위치 이름 같은 걸 한 번 검사해서, 오타가 있으면 게임 도중이 아니라 시작할 때 알 수 있게 했습니다.
+
+실행기가 대사창이나 오디오를 직접 만지지 않고 `IDialogueView`, `IStageView`, `IAudioView`, `IChoiceView`만 부릅니다. 덕분에 화면 없이 가짜 View를 끼워서 실행기를 테스트할 수 있고, 선택지의 모든 조합을 자동으로 돌려 보는 테스트도 만들 수 있었습니다.
+
+엔딩 문구에서 일부 글자가 □로 깨진 적이 있습니다. TextMeshPro의 동적 글꼴 아틀라스가 1024x1024 한 장이라 한글이 100자쯤 들어가면 가득 차기 때문이었고, Multi Atlas를 켜서 해결했습니다.
+
+이미지도 한 번 걸렸습니다. 이 프로젝트는 새 이미지를 자동으로 여러 조각으로 나누도록 되어 있어서, `Resources.Load<Sprite>`가 캐릭터 전체가 아니라 첫 조각(223x223)만 돌려줬습니다. 배경과 캐릭터 폴더는 항상 Single로 가져오도록 임포터 스크립트를 넣었습니다.
+
+캔버스 스케일이 고정 픽셀이라 화면이 커지면 글자와 대사창이 상대적으로 작아지는 구조였습니다. 빌드하기 전에 이걸 발견하고 1280x720 기준 `Scale With Screen Size`로 바꿨고, 배경이 늘어나지 않게 16:9 창으로 고정했습니다.
+
+## 폴더
 
 ```
 Assets/
   Scripts/
-    Data/         ScriptData, ScriptCommand, ScriptLoader        (JSON 데이터와 로더)
-    Runner/       ScriptExecutor, FlagStore, ScriptRunner, I*View (명령 실행과 화면 인터페이스)
-    DialogueManager / StageManager / AudioManager / ChoiceManager  (화면과 소리 구현)
-    GameFlow      타이틀 → 시나리오 → 엔딩 흐름
-  Editor/         StageSpriteImporter, BuildTool, ScriptAnalyzer, ScriptValidatorMenu
-  Tests/EditMode/ 자동 테스트 141개
-  Resources/
-    Scripts/      story.json (본편), sample.json (기능 시연용)
-    Backgrounds/ Characters/ Audio/Bgm/ Audio/Sfx/
-  Scenes/SampleScene.unity
-Docs/             script-format.md (포맷과 구조), story.md (시나리오), testing.md (테스트와 검증), screenshots/
+    Data/        시나리오 JSON을 읽는 클래스
+    Runner/      ScriptExecutor(명령 실행), FlagStore(플래그), I*View(화면 인터페이스)
+    DialogueManager, StageManager, AudioManager, ChoiceManager, GameFlow
+  Editor/        빌드, 이미지 임포트, 시나리오 검사 도구
+  Tests/EditMode/
+  Resources/     Scripts(story.json), Backgrounds, Characters, Audio
+Docs/            포맷 설명, 시나리오 구조, 테스트 설명, 스크린샷
 ```
 
-실행기는 화면을 직접 다루지 않고 `IDialogueView`, `IStageView`, `IAudioView`, `IChoiceView`에만 의존합니다. 그래서 화면 없이도 실행 로직을 시험할 수 있습니다.
+## 실행하기
 
-## 개발 환경
+Unity 6000.3.11f1에서 프로젝트를 열고 `Assets/Scenes/SampleScene`을 실행하면 됩니다.
 
-- Unity 6 (6000.3.11f1), URP 2D 템플릿
-- TextMeshPro (나눔스퀘어 글꼴, Dynamic + Multi Atlas), Input System, uGUI
+- 테스트: `Window > General > Test Runner`의 EditMode에서 실행합니다.
+- 시나리오 검사: 메뉴 `VN > Validate Scripts`가 없는 이미지나 소리 파일, 도달할 수 없는 대사, 엔딩 연결 오류를 찾아 줍니다.
+- 빌드: 메뉴 `VN > Build Windows (64-bit)`를 실행하면 `Builds/VN-Practice/VN-Practice.exe`가 만들어집니다. 명령줄에서는 `Unity.exe -batchmode -quit -projectPath . -executeMethod BuildTool.BuildWindows`입니다. 창은 1280x720으로 고정돼 있습니다.
 
-## 빌드
+## 아쉬운 점
 
-에디터 메뉴 **VN → Build Windows (64-bit)** 를 실행하면 `Builds/VN-Practice/VN-Practice.exe`가 만들어집니다. 명령줄에서는 다음과 같이 실행합니다.
+- 이미지와 소리가 전부 임시입니다.
+- 분량이 목표(8~10분)보다 짧습니다.
+- 세이브/로드, 백로그, 오토/스킵은 일정 때문에 넣지 못했습니다.
+- 16:9 창만 지원합니다.
 
-```powershell
-Unity.exe -batchmode -quit -projectPath . -executeMethod BuildTool.BuildWindows
-```
-
-- 창은 1280x720(16:9)으로 고정이고 전체화면 전환은 막아 두었습니다. UI는 `CanvasScaler`(1280x720 기준)로 배율이 맞춰지지만, 배경 이미지가 늘어나지 않도록 16:9만 지원합니다.
-- `Builds/`는 `.gitignore`에 있어 저장소에 올라가지 않습니다. 빌드 폴더에 `*_BurstDebugInformation_DoNotShip` 폴더가 생기면 배포할 때 빼면 됩니다.
-
-## 진행 상황
-
-- [x] 기본 대화 시스템
-- [x] 스크립트 데이터 포맷과 실행기 (say / label / jump / end)
-- [x] 배경, 캐릭터 연출 (bg / show / hide, 페이드)
-- [x] 사운드 (bgm / sfx, BGM 교체 페이드)
-- [x] 선택지와 분기 (choice, 라벨 점프)
-- [x] 플래그와 엔딩 판정 (set / if)
-- [x] 타이틀/엔딩 화면, 타이틀부터 엔딩까지 한 판 흐름
-- [x] 실제 시나리오 입력 (교실/복도/옥상, 선택지 3곳, 엔딩 2개)
-- [x] 빌드 테스트와 정리 (Windows 64비트 빌드, 스크린샷, 문서)
-- [x] 자동 테스트와 시나리오 검증 도구
+더 자세한 내용은 [시나리오 포맷과 구조](Docs/script-format.md), [시나리오 분기](Docs/story.md), [테스트](Docs/testing.md)에 적어 두었습니다.
