@@ -18,6 +18,7 @@ public class AudioManager : MonoBehaviour, IAudioView
     private AudioSource bgmSource;
     private AudioSource sfxSource;
     private Coroutine bgmRoutine;
+    private int activeFades; // 페이드가 진행 중인 개수. 0일 때만 음량 변경을 바로 반영한다
 
     /// <summary>현재 재생 중이거나 재생하려는 BGM 이름. 꺼져 있으면 null.</summary>
     public string CurrentBgm { get; private set; }
@@ -55,6 +56,14 @@ public class AudioManager : MonoBehaviour, IAudioView
         StartBgmRoutine(SwitchBgm(clip, duration));
     }
 
+    /// <summary>BGM과 효과음의 음량(0~1)을 바꾼다. 지금 나오는 BGM에도 바로 반영된다 (페이드 중이면 페이드가 끝난 뒤 새 음량이 된다).</summary>
+    public void SetVolumes(float bgm, float sfx)
+    {
+        bgmVolume = Mathf.Clamp01(bgm);
+        sfxVolume = Mathf.Clamp01(sfx);
+        if (bgmSource != null && bgmSource.isPlaying && activeFades == 0) bgmSource.volume = bgmVolume;
+    }
+
     /// <summary>BGM과 효과음을 즉시 모두 끈다. 새 판을 시작하거나 타이틀로 돌아갈 때 쓴다.</summary>
     public void StopAll()
     {
@@ -64,6 +73,7 @@ public class AudioManager : MonoBehaviour, IAudioView
             bgmRoutine = null;
         }
 
+        activeFades = 0;
         bgmSource.Stop();
         bgmSource.clip = null;
         bgmSource.volume = bgmVolume;
@@ -85,6 +95,7 @@ public class AudioManager : MonoBehaviour, IAudioView
     private void StartBgmRoutine(IEnumerator routine)
     {
         if (bgmRoutine != null) StopCoroutine(bgmRoutine);
+        activeFades = 0; // 멈춘 코루틴이 남긴 값을 비운다
         bgmRoutine = StartCoroutine(routine);
     }
 
@@ -119,6 +130,7 @@ public class AudioManager : MonoBehaviour, IAudioView
             yield break;
         }
 
+        activeFades++;
         float elapsed = 0f;
         bgmSource.volume = from;
         while (elapsed < duration)
@@ -128,5 +140,6 @@ public class AudioManager : MonoBehaviour, IAudioView
             yield return null;
         }
         bgmSource.volume = to;
+        activeFades = Mathf.Max(0, activeFades - 1);
     }
 }
