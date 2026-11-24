@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -60,6 +61,12 @@ public class GameFlow : MonoBehaviour
         get { return store ?? (store = SaveStore.CreateDefault()); }
         set { store = value; }
     }
+
+    private static readonly IReadOnlyList<SaveData.LogEntry> NoLog = new SaveData.LogEntry[0];
+
+    /// <summary>지금까지 읽은 대사 기록 (백로그). 재생 중이 아니면 빈 목록.</summary>
+    public IReadOnlyList<SaveData.LogEntry> Backlog =>
+        runner != null && runner.Executor != null ? runner.Executor.Backlog : NoLog;
 
     /// <summary>지금 저장할 수 있는지. 대사나 선택지에서 입력을 기다리는 중일 때만 true (연출이나 화면 전환 중에는 false).</summary>
     public bool CanSaveNow =>

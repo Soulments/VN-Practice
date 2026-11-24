@@ -35,6 +35,12 @@ public class ScriptExecutor
     };
     private ScriptData currentData;
 
+    private const int MaxBacklog = 100;
+    private readonly List<SaveData.LogEntry> backlog = new List<SaveData.LogEntry>();
+
+    /// <summary>지금까지 읽은 대사와 고른 선택지 기록 (오래된 것부터). 가장 최근 MaxBacklog개만 남는다. 현재 화면의 대사도 포함된다.</summary>
+    public IReadOnlyList<SaveData.LogEntry> Backlog => backlog;
+
     private static readonly HashSet<string> Positions = new HashSet<string> { "left", "center", "right" };
 
     private readonly IDialogueView view;
@@ -151,6 +157,7 @@ public class ScriptExecutor
         Failed = false;
         WaitingPc = -1;
         currentData = data;
+        backlog.Clear();
         background = null;
         bgm = null;
         foreach (var key in new List<string>(slots.Keys)) slots[key] = null;
@@ -189,6 +196,7 @@ public class ScriptExecutor
                 case "say":
                     steps = 0;
                     WaitingPc = pc;
+                    AddLog(c.speaker, c.text);
                     yield return view.ShowLine(c.speaker, c.text);
                     WaitingPc = -1;
                     pc++;
@@ -244,6 +252,8 @@ public class ScriptExecutor
                         Failed = true;
                         yield break;
                     }
+
+                    AddLog("", "▶ " + c.options[picked].text);
 
                     // 고른 선택지에 set이 있으면 플래그를 먼저 갱신한 뒤 분기한다 (Validate가 해석 가능함을 보장)
                     if (!string.IsNullOrEmpty(c.options[picked].set))
@@ -305,6 +315,12 @@ public class ScriptExecutor
         if (!CanSave || currentData == null) return null;
 
         var c = currentData.commands[WaitingPc];
+
+        // 지금 보고 있는 대사는 이어 할 때 다시 기록되므로, 그 직전까지만 저장한다
+        int logCount = c.type == "say" ? Mathf.Max(0, backlog.Count - 1) : backlog.Count;
+        var log = new SaveData.LogEntry[logCount];
+        for (int i = 0; i < logCount; i++) log[i] = new SaveData.LogEntry { speaker = backlog[i].speaker, text = backlog[i].text };
+
         return new SaveData
         {
             pc = WaitingPc,
@@ -315,6 +331,7 @@ public class ScriptExecutor
             right = slots["right"],
             bgm = bgm,
             flags = SaveData.PackFlags(Flags.All),
+            log = log,
             preview = Preview(c),
         };
     }
@@ -335,6 +352,12 @@ public class ScriptExecutor
         return null;
     }
 
+    private void AddLog(string speaker, string text)
+    {
+        backlog.Add(new SaveData.LogEntry { speaker = speaker, text = text });
+        if (backlog.Count > MaxBacklog) backlog.RemoveAt(0);
+    }
+
     private static string LineKey(ScriptCommand c)
     {
         if (c.type == "choice") return "choice|" + string.Join("|", OptionTexts(c));
@@ -353,6 +376,11 @@ public class ScriptExecutor
     /// <summary>저장된 배경, 캐릭터, BGM, 플래그를 즉시(페이드 없이) 되살린다.</summary>
     private IEnumerator Restore(SaveData save)
     {
+        if (save.log != null)
+        {
+            foreach (var entry in save.log) AddLog(entry.speaker, entry.text);
+        }
+
         if (save.flags != null)
         {
             foreach (var flag in save.flags)
