@@ -22,6 +22,7 @@ namespace VN.Tests
             public Dictionary<string, string> Slots;
             public string Bg, Bgm;
             public Dictionary<string, int> Flags;
+            public List<string> Log;
         }
 
         /// <summary>시나리오를 picks대로 끝까지 실행하면서, 입력을 기다리는 자리마다 세이브와 그때의 화면 상태를 모은다.</summary>
@@ -41,6 +42,7 @@ namespace VN.Tests
                 Bg = game.Bg,
                 Bgm = game.Bgm,
                 Flags = new Dictionary<string, int>(executor.Flags.All),
+                Log = executor.Backlog.Select(e => e.text).ToList(),
             });
             executor = new ScriptExecutor(game, game, game, game);
             Drive(executor.Run(data));
@@ -78,6 +80,7 @@ namespace VN.Tests
                         Assert.That(game.Bgm, Is.EqualTo(point.Bgm), "BGM: " + where);
                         Assert.That(game.Slots, Is.EquivalentTo(point.Slots), "캐릭터 자리: " + where);
                         Assert.That(executor.Flags.All, Is.EquivalentTo(point.Flags), "플래그: " + where);
+                        Assert.That(executor.Backlog.Select(e => e.text).ToList(), Is.EqualTo(point.Log), "백로그: " + where);
                     };
                     executor = new ScriptExecutor(game, game, game, game);
                     Drive(executor.Run(data, point.Save));
@@ -88,6 +91,7 @@ namespace VN.Tests
                     Assert.That(game.Says, Is.EqualTo(original.Says.Skip(point.SaysBefore).ToList()), "남은 대사: " + where);
                     Assert.That(executor.Flags.All, Is.EquivalentTo(originalExecutor.Flags.All), "최종 플래그: " + where);
                     Assert.That(game.Bgm, Is.EqualTo(original.Bgm), "최종 BGM: " + where);
+                    Assert.That(executor.Backlog.Select(e => e.text).ToList(), Is.EqualTo(originalExecutor.Backlog.Select(e => e.text).ToList()), "최종 백로그: " + where);
                     resumes++;
                 }
             }

@@ -33,6 +33,9 @@ public class SaveData
 
     public FlagEntry[] flags = new FlagEntry[0];
 
+    /// <summary>저장한 자리 직전까지 읽은 대사 기록(백로그). 그 자리의 대사 자체는 이어 할 때 다시 기록되므로 넣지 않는다.</summary>
+    public LogEntry[] log = new LogEntry[0];
+
     /// <summary>저장 시각 ("yyyy-MM-dd HH:mm"). 슬롯 목록에 보인다.</summary>
     public string savedAt;
 
@@ -44,6 +47,13 @@ public class SaveData
     {
         public string name;
         public int value;
+    }
+
+    [Serializable]
+    public class LogEntry
+    {
+        public string speaker;
+        public string text;
     }
 
     public static FlagEntry[] PackFlags(IReadOnlyDictionary<string, int> flags)
