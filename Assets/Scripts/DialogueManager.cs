@@ -18,6 +18,12 @@ public class DialogueManager : MonoBehaviour, IDialogueView
     [Tooltip("0보다 크면 한 줄이 다 나온 뒤 이 시간(초)이 지나면 입력이 없어도 자동으로 다음 줄로 넘어간다. 0이면 끔 (자동 시연/테스트용)")]
     public float autoAdvanceDelay = 0f;
 
+    /// <summary>true인 동안은 클릭/키 입력으로 대사가 넘어가지 않는다. 메뉴가 열려 있을 때 쓴다.</summary>
+    public bool Paused { get; set; }
+
+    /// <summary>이 영역 안에서 누른 마우스 클릭은 "다음 줄" 입력으로 치지 않는다 (메뉴 버튼처럼 클릭으로 다른 일을 하는 UI).</summary>
+    public readonly System.Collections.Generic.List<RectTransform> clickBlockers = new System.Collections.Generic.List<RectTransform>();
+
     /// <summary>대사창의 이름과 대사를 비운다. 새 판을 시작하거나 타이틀로 돌아갈 때 쓴다.</summary>
     public void Clear()
     {
@@ -77,13 +83,27 @@ public class DialogueManager : MonoBehaviour, IDialogueView
         }
     }
 
-    static bool AdvancePressed()
+    bool AdvancePressed()
     {
+        if (Paused) return false;
+
         var mouse = Mouse.current;
-        if (mouse != null && mouse.leftButton.wasPressedThisFrame) return true;
+        if (mouse != null && mouse.leftButton.wasPressedThisFrame && !PointerOnBlocker(mouse.position.ReadValue())) return true;
 
         var keyboard = Keyboard.current;
         return keyboard != null &&
                (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame);
+    }
+
+    private bool PointerOnBlocker(Vector2 screenPoint)
+    {
+        foreach (var blocker in clickBlockers)
+        {
+            if (blocker == null || !blocker.gameObject.activeInHierarchy) continue;
+            var canvas = blocker.GetComponentInParent<Canvas>();
+            var camera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+            if (RectTransformUtility.RectangleContainsScreenPoint(blocker, screenPoint, camera)) return true;
+        }
+        return false;
     }
 }

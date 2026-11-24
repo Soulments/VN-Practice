@@ -31,6 +31,9 @@ namespace VN.Tests
         /// <summary>선택지가 나올 때마다 (몇 번째 선택지인지, 선택지 개수) -> 고를 번호. 기본은 항상 0번.</summary>
         public Func<int, int, int> Chooser = (call, count) => 0;
 
+        /// <summary>대사나 선택지가 입력을 기다리기 시작할 때마다 불린다 (저장 시험용). 그 줄은 아직 Says에 기록되기 전이다.</summary>
+        public Action OnWait;
+
         public bool AnyCharacterShown
         {
             get
@@ -42,6 +45,7 @@ namespace VN.Tests
 
         public IEnumerator ShowLine(string speaker, string text)
         {
+            OnWait?.Invoke();
             Says.Add(text);
             Events.Add("say:" + text);
             yield break;
@@ -102,6 +106,7 @@ namespace VN.Tests
 
         public IEnumerator ShowChoices(IList<string> options, Action<int> onChosen)
         {
+            OnWait?.Invoke();
             int call = OptionCounts.Count;
             OptionCounts.Add(options.Count);
             int pick = Chooser(call, options.Count);
